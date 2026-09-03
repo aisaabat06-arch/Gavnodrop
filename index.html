@@ -1,0 +1,535 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Слот-Машина 777</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Press+Start+2P&family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0f172a; 
+            background-image: radial-gradient(circle at 50% 0%, #330000 0%, #0f172a 80%);
+            color: white;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        .title-font {
+            font-family: 'Russo One', sans-serif;
+        }
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* КОРПУС АВТОМАТА */
+        .slot-machine {
+            background: linear-gradient(180deg, #d97706, #92400e);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 5px 15px rgba(255,255,255,0.3);
+            border: 4px solid #f59e0b;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ЭКРАН СО СЛОТАМИ */
+        .slots-display {
+            background: #111;
+            border: 4px solid #475569;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+            position: relative;
+        }
+
+        /* ТЕНЬ ВНУТРИ СЛОТОВ (эффект глубины) */
+        .slots-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 5;
+            border-radius: 6px;
+        }
+
+        /* ОДИН БАРАБАН (РЕЕЛ) */
+        .reel-container {
+            width: 80px;
+            height: 100px;
+            background: #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .reel-strip {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            /* Анимация прокрутки: timing function делает эффект замедления в конце */
+            transition: transform 3s cubic-bezier(0.15, 0.85, 0.2, 1);
+        }
+
+        .symbol {
+            height: 100px; /* Высота одного символа равна высоте контейнера */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            filter: drop-shadow(2px 4px 2px rgba(0,0,0,0.3));
+        }
+
+        /* --- СТИЛИ ДЛЯ РУЧКИ АВТОМАТА --- */
+        .lever-wrapper {
+            position: absolute;
+            right: -55px; 
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 220px;
+            perspective: 800px;
+            z-index: 1;
+        }
+
+        .lever-base {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 5px;
+            width: 30px;
+            height: 80px;
+            background: linear-gradient(to right, #475569, #1e293b, #0f172a);
+            border-radius: 8px 0 0 8px;
+            border: 2px solid #0f172a;
+            border-right: none;
+        }
+
+        .lever-stick {
+            position: absolute;
+            top: 10px; 
+            left: 15px;
+            width: 16px;
+            height: 120px;
+            background: linear-gradient(to right, #e2e8f0, #94a3b8, #64748b);
+            border-radius: 10px;
+            transform-origin: bottom center;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            box-shadow: inset 2px 0 5px rgba(255,255,255,0.8);
+        }
+
+        .lever-knob {
+            position: absolute;
+            top: -25px;
+            left: -15px;
+            width: 46px;
+            height: 46px;
+            background: radial-gradient(circle at 30% 30%, #f87171, #dc2626, #7f1d1d);
+            border-radius: 50%;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.5), inset -5px -5px 10px rgba(0,0,0,0.4);
+            border: 2px solid #7f1d1d;
+            transition: all 0.2s;
+        }
+
+        .lever-pulled {
+            transform: rotateX(80deg); /* Эффект опускания ручки */
+        }
+
+        /* Инпуты */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Конфетти */
+        .confetti {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            animation: fall linear forwards;
+            z-index: 100;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Заголовок и Баланс -->
+    <div class="text-center mb-6 w-full max-w-sm">
+        <h1 class="title-font text-5xl text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 mb-4 filter drop-shadow-[0_0_10px_rgba(253,224,71,0.5)]">SLOTS 777</h1>
+        <div class="bg-black/80 rounded-xl p-4 border-2 border-yellow-600/50 flex justify-between items-center shadow-lg">
+            <span class="text-gray-400 uppercase text-xs font-bold tracking-widest">Твой баланс</span>
+            <div class="text-3xl font-black text-green-400 tracking-tight flex items-center gap-1">
+                <span id="balance">1000</span> <span class="text-xl text-green-600">₽</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- КОНТЕЙНЕР АВТОМАТА -->
+    <div class="relative max-w-sm w-full mb-8">
+        
+        <div class="slot-machine">
+            <!-- Табло выигрышей -->
+            <div class="bg-black/50 rounded-lg p-2 mb-4 border border-orange-900/50 text-center">
+                <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mb-1">Таблица выплат</p>
+                <div class="flex justify-center gap-4 text-xs font-mono text-gray-300">
+                    <span>🍒🍒 = x1</span>
+                    <span>🍒🍒🍒 = x3</span>
+                    <span>🍋🍋🍋 = x5</span>
+                </div>
+                <div class="flex justify-center gap-4 text-xs font-mono text-gray-300 mt-1">
+                    <span>🔔🔔🔔 = x15</span>
+                    <span class="text-blue-400">💎💎💎 = x25</span>
+                    <span class="text-red-500 font-bold">7️⃣7️⃣7️⃣ = JACKPOT</span>
+                </div>
+            </div>
+
+            <!-- ЭКРАН БАРАБАНОВ -->
+            <div class="slots-display mx-auto w-max">
+                <div class="slots-overlay"></div>
+                <!-- Барабан 1 -->
+                <div class="reel-container">
+                    <div class="reel-strip" id="reel1"></div>
+                </div>
+                <!-- Барабан 2 -->
+                <div class="reel-container">
+                    <div class="reel-strip" id="reel2"></div>
+                </div>
+                <!-- Барабан 3 -->
+                <div class="reel-container">
+                    <div class="reel-strip" id="reel3"></div>
+                </div>
+            </div>
+
+            <!-- УПРАВЛЕНИЕ СТАВКАМИ -->
+            <div class="mt-6 bg-black/60 p-3 rounded-xl border border-orange-900">
+                <label class="block text-center text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-2">Ставка</label>
+                <div class="flex items-center justify-between bg-black rounded-lg p-2 border border-gray-800 shadow-inner">
+                    <button id="btnMin" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded text-white font-bold text-xl flex items-center justify-center border border-slate-600">-</button>
+                    
+                    <div class="flex items-center">
+                        <input type="number" id="betInput" value="50" min="10" class="w-20 bg-transparent text-center text-2xl font-bold text-white font-mono outline-none transition focus:text-yellow-400">
+                        <span class="text-gray-500 font-mono text-lg ml-1">₽</span>
+                    </div>
+
+                    <button id="btnMax" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded text-white font-bold text-xl flex items-center justify-center border border-slate-600">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- РУЧКА АВТОМАТА (Lever) -->
+        <div class="lever-wrapper">
+            <div class="lever-base"></div>
+            <div class="lever-stick" id="leverTrigger">
+                <div class="lever-knob"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно выигрыша -->
+    <div id="messageBox" class="fixed inset-0 flex items-center justify-center z-50 bg-black/90 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-gradient-to-b from-slate-900 to-black p-8 rounded-3xl border-4 border-yellow-500 text-center max-w-sm w-full transform scale-95 transition-transform duration-300 shadow-[0_0_80px_rgba(251,191,36,0.4)] mx-4 relative overflow-hidden">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+            
+            <h2 id="msgTitle" class="title-font text-4xl mb-2 text-yellow-400 relative z-10">ПОБЕДА!</h2>
+            <div class="text-xl text-gray-300 mb-1 font-mono uppercase tracking-widest relative z-10">Множитель <span id="msgMult" class="text-white">x2</span></div>
+            <p id="msgAmount" class="text-5xl font-black text-green-400 mb-8 font-mono relative z-10 filter drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]">+100 ₽</p>
+            
+            <button id="msgClose" class="relative z-10 px-8 py-4 bg-gradient-to-b from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 text-black font-black rounded-full uppercase tracking-widest transition-all w-full shadow-lg active:scale-95 text-lg">Забрать бабки</button>
+        </div>
+    </div>
+
+    <script>
+        // Доступные символы в автомате
+        const ICONS = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
+        const SYMBOL_HEIGHT = 100; // высота одного символа в px
+
+        // Таблица вероятностей и исходов (Жесткая математика, чтобы багов не было)
+        // Вероятности: 60% проигрыш, 40% выигрыш разного размера
+        const OUTCOMES = [
+            { type: 'loss', weight: 60, mult: 0 },
+            { type: 'cherry2', weight: 20, mult: 1, target: ['🍒', '🍒', 'any'] }, // Возврат ставки
+            { type: 'cherry3', weight: 10, mult: 3, target: ['🍒', '🍒', '🍒'] },
+            { type: 'lemon3', weight: 5, mult: 5, target: ['🍋', '🍋', '🍋'] },
+            { type: 'melon3', weight: 3, mult: 10, target: ['🍉', '🍉', '🍉'] },
+            { type: 'bell3', weight: 1.3, mult: 15, target: ['🔔', '🔔', '🔔'] },
+            { type: 'diamond3', weight: 0.5, mult: 25, target: ['💎', '💎', '💎'] },
+            { type: 'seven3', weight: 0.2, mult: 100, target: ['7️⃣', '7️⃣', '7️⃣'] } // Супер джекпот x100
+        ];
+
+        // Состояние игры
+        let balance = 1000;
+        let isSpinning = false;
+        
+        // DOM Элементы
+        const balanceEl = document.getElementById('balance');
+        const betInput = document.getElementById('betInput');
+        const leverTrigger = document.getElementById('leverTrigger');
+        const msgBox = document.getElementById('messageBox');
+        
+        const strips = [
+            document.getElementById('reel1'),
+            document.getElementById('reel2'),
+            document.getElementById('reel3')
+        ];
+
+        // Инициализация барабанов (заполняем случайными иконками)
+        function initReels() {
+            strips.forEach(strip => {
+                strip.innerHTML = '';
+                // Добавляем 1 начальный символ
+                const div = document.createElement('div');
+                div.className = 'symbol';
+                div.innerText = ICONS[Math.floor(Math.random() * ICONS.length)];
+                strip.appendChild(div);
+                strip.style.transform = `translateY(0px)`;
+            });
+        }
+
+        // Логика ставок
+        function validateBet() {
+            let val = parseInt(betInput.value);
+            if (isNaN(val) || val <= 0) val = 10;
+            if (val < 10) val = 10;
+            if (val > balance && balance > 0) val = balance;
+            betInput.value = val;
+            return val;
+        }
+
+        document.getElementById('btnMin').addEventListener('click', () => {
+            if (isSpinning) return;
+            betInput.value = (parseInt(betInput.value) || 10) - 10;
+            validateBet();
+        });
+        document.getElementById('btnMax').addEventListener('click', () => {
+            if (isSpinning) return;
+            betInput.value = (parseInt(betInput.value) || 10) + 10;
+            validateBet();
+        });
+        betInput.addEventListener('blur', validateBet);
+
+        // Функция выбора исхода на основе веса (шансов)
+        function getOutcome() {
+            let totalWeight = OUTCOMES.reduce((sum, item) => sum + item.weight, 0);
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < OUTCOMES.length; i++) {
+                if (random < OUTCOMES[i].weight) return OUTCOMES[i];
+                random -= OUTCOMES[i].weight;
+            }
+            return OUTCOMES[0];
+        }
+
+        // Генерация финальных символов для барабанов на основе исхода
+        function generateFinalSymbols(outcome) {
+            let result = [];
+            if (outcome.type === 'loss') {
+                // Генерируем 3 случайных, но следим, чтобы не было выигрышной комбы
+                while(true) {
+                    result = [
+                        ICONS[Math.floor(Math.random() * ICONS.length)],
+                        ICONS[Math.floor(Math.random() * ICONS.length)],
+                        ICONS[Math.floor(Math.random() * ICONS.length)]
+                    ];
+                    // Проверяем: не три одинаковых и не две вишни в начале
+                    if (result[0] === result[1] && result[1] === result[2]) continue;
+                    if (result[0] === '🍒' && result[1] === '🍒') continue;
+                    break;
+                }
+            } else {
+                result = [...outcome.target];
+                if (result[2] === 'any') {
+                    // Если это 2 вишни, третий символ любой, кроме вишни (иначе будет х3)
+                    let third;
+                    do { third = ICONS[Math.floor(Math.random() * ICONS.length)]; } while (third === '🍒');
+                    result[2] = third;
+                }
+            }
+            return result;
+        }
+
+        // Главная функция запуска слотов
+        function pullLever() {
+            if (isSpinning) return;
+
+            let currentBet = validateBet();
+
+            if (balance <= 0) {
+                alert("Казино щедрое! Держи фриспины на 500 ₽.");
+                balance = 500;
+                balanceEl.innerText = balance;
+                betInput.value = 10;
+                return;
+            }
+            if (currentBet > balance) {
+                currentBet = balance;
+                betInput.value = currentBet;
+            }
+
+            isSpinning = true;
+            betInput.disabled = true;
+
+            // Списываем ставку СРАЗУ
+            balance -= currentBet;
+            balanceEl.innerText = balance;
+
+            // Анимация ручки
+            leverTrigger.classList.add('lever-pulled');
+            setTimeout(() => leverTrigger.classList.remove('lever-pulled'), 300);
+
+            // 1. Математика: определяем результат СЕЙЧАС
+            const outcome = getOutcome();
+            const finalSymbols = generateFinalSymbols(outcome);
+            const winAmount = currentBet * outcome.mult;
+
+            // 2. Подготовка лент для анимации
+            // Генерируем длинную ленту (30 символов) для каждого барабана, финальный символ ставим в конец
+            const TOTAL_SYMBOLS = 30;
+            
+            strips.forEach((strip, index) => {
+                // Убираем старую транзицию для мгновенного сброса
+                strip.style.transition = 'none';
+                
+                // Оставляем только текущий видимый символ, остальное чистим
+                const currentSymbol = strip.lastChild ? strip.lastChild.innerText : ICONS[0];
+                strip.innerHTML = '';
+                
+                let html = `<div class="symbol">${currentSymbol}</div>`;
+                
+                // Заполняем случайными
+                for(let i = 1; i < TOTAL_SYMBOLS - 1; i++) {
+                    html += `<div class="symbol">${ICONS[Math.floor(Math.random() * ICONS.length)]}</div>`;
+                }
+                
+                // Добавляем финальный (тот, что выпал по математике)
+                html += `<div class="symbol">${finalSymbols[index]}</div>`;
+                strip.innerHTML = html;
+
+                // Сбрасываем позицию на самый верх (где старый символ)
+                strip.style.transform = `translateY(0px)`;
+            });
+
+            // Небольшой таймаут, чтобы браузер применил сброс позиции без анимации
+            setTimeout(() => {
+                // 3. Запуск вращения
+                strips.forEach((strip, index) => {
+                    // Возвращаем транзицию, но каждому барабану даем разное время (для эффекта поочередной остановки)
+                    const duration = 2 + (index * 0.5); // 2с, 2.5с, 3с
+                    strip.style.transition = `transform ${duration}s cubic-bezier(0.15, 0.85, 0.2, 1)`;
+                    
+                    // Крутим вниз до последнего символа
+                    const targetY = -(TOTAL_SYMBOLS - 1) * SYMBOL_HEIGHT;
+                    strip.style.transform = `translateY(${targetY}px)`;
+                });
+
+                // Ждем окончания самого долгого барабана (3 сек) + запас
+                setTimeout(() => {
+                    handleResult(outcome, winAmount);
+                }, 3100);
+
+            }, 50);
+        }
+
+        // Обработка результата
+        function handleResult(outcome, winAmount) {
+            if (outcome.mult > 0) {
+                // --- ЗДЕСЬ СТРОГО ОБНОВЛЯЕТСЯ БАЛАНС ---
+                balance += winAmount;
+                balanceEl.innerText = balance;
+
+                // Настраиваем UI выигрыша
+                const title = document.getElementById('msgTitle');
+                if (outcome.mult >= 25) {
+                    title.innerText = "ДЖЕКПОТ!!!";
+                    title.className = "title-font text-5xl mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-red-500 animate-pulse relative z-10";
+                    fireConfetti(150);
+                } else if (outcome.mult >= 5) {
+                    title.innerText = "МЕГА ВЫИГРЫШ!";
+                    title.className = "title-font text-4xl mb-2 text-yellow-400 relative z-10";
+                    fireConfetti(50);
+                } else {
+                    title.innerText = "ПОБЕДА!";
+                    title.className = "title-font text-4xl mb-2 text-green-400 relative z-10";
+                }
+
+                document.getElementById('msgMult').innerText = `x${outcome.mult}`;
+                document.getElementById('msgAmount').innerText = `+${winAmount} ₽`;
+
+                msgBox.classList.remove('hidden');
+                setTimeout(() => {
+                    msgBox.classList.remove('opacity-0');
+                    msgBox.children[0].classList.remove('scale-95');
+                    msgBox.children[0].classList.add('scale-100');
+                }, 10);
+            } else {
+                // Проигрыш - просто освобождаем UI
+                resetUI();
+                if(balance === 0) {
+                    setTimeout(() => alert("Баланс 0. Дерни ручку еще раз для фриспинов!"), 300);
+                }
+            }
+        }
+
+        function resetUI() {
+            isSpinning = false;
+            betInput.disabled = false;
+            // Очищаем длинные ленты барабанов, оставляя только 1 финальный символ, 
+            // чтобы DOM не пух и анимация могла работать снова
+            strips.forEach(strip => {
+                const lastSymbol = strip.lastChild.innerText;
+                strip.style.transition = 'none';
+                strip.innerHTML = `<div class="symbol">${lastSymbol}</div>`;
+                strip.style.transform = `translateY(0px)`;
+            });
+        }
+
+        // Привязываем ручку
+        leverTrigger.addEventListener('mousedown', pullLever);
+        leverTrigger.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            pullLever();
+        }, {passive: false});
+
+        // Закрытие модалки
+        document.getElementById('msgClose').addEventListener('click', () => {
+            msgBox.classList.add('opacity-0');
+            msgBox.children[0].classList.remove('scale-100');
+            msgBox.children[0].classList.add('scale-95');
+            setTimeout(() => {
+                msgBox.classList.add('hidden');
+                resetUI();
+            }, 300);
+        });
+
+        // Конфетти
+        function fireConfetti(amount) {
+            const colors = ['#ef4444', '#10b981', '#3b82f6', '#eab308', '#d946ef', '#ffffff'];
+            for (let i = 0; i < amount; i++) {
+                const conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = -20 + 'px';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Разные формы
+                if (Math.random() > 0.5) conf.style.borderRadius = '50%';
+                
+                const duration = Math.random() * 2 + 2;
+                conf.style.animationDuration = duration + 's';
+                
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), duration * 1000);
+            }
+        }
+
+        // Старт
+        initReels();
+    </script>
+</body>
+</html>
+```
