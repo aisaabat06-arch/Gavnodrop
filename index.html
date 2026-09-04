@@ -26,12 +26,29 @@
         .game-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .game-card:active { transform: translateY(0) scale(0.98); }
 
-        /* Слоты */
-        .slot-machine { background: linear-gradient(180deg, #d97706, #92400e); border-radius: 20px; padding: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 5px 15px rgba(255,255,255,0.3); border: 4px solid #f59e0b; position: relative; z-index: 10; margin: 0 auto; }
-        .slots-display { background: #111; border: 4px solid #475569; border-radius: 10px; padding: 10px; display: flex; gap: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.9); position: relative; }
-        .slots-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0,0,0,0.8) 100%); pointer-events: none; z-index: 5; border-radius: 6px; }
-        .reel-container { width: 80px; height: 100px; background: #fff; border-radius: 5px; overflow: hidden; position: relative; }
-        
+        /* ИСПРАВЛЕННЫЙ СЛОТ-АППАРАТ */
+        .slot-machine-casing {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 4px solid #f59e0b;
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.3), inset 0 0 15px rgba(255,255,255,0.1);
+            border-radius: 24px;
+        }
+        .slots-display-frame {
+            background: #020617;
+            border: 3px solid #334155;
+            border-radius: 16px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+            position: relative;
+        }
+        .reel-box {
+            width: 76px;
+            height: 96px;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
         .reel-strip { 
             display: flex; 
             flex-direction: column; 
@@ -41,8 +58,14 @@
             backface-visibility: hidden;
             transform: translate3d(0, 0, 0);
         }
-        
-        .symbol { height: 100px; display: flex; justify-content: center; align-items: center; font-size: 50px; filter: drop-shadow(2px 4px 2px rgba(0,0,0,0.3)); }
+        .symbol { 
+            height: 96px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 46px; 
+            filter: drop-shadow(2px 4px 2px rgba(0,0,0,0.3)); 
+        }
 
         /* Блэкджек */
         .card { width: 60px; height: 90px; background: white; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); margin-right: -30px; position: relative; }
@@ -55,8 +78,7 @@
 
         #fxCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1000; }
         
-        /* Loading overlay for DB */
-        #loadingOverlay { backdrop-filter: blur(5px); }
+        #loadingOverlay { backdrop-filter: blur(8px); }
 
         /* Стиль Покемон-карточки */
         .poke-card {
@@ -92,20 +114,55 @@
     <canvas id="fxCanvas"></canvas>
 
     <!-- ИНДИКАТОР ЗАГРУЗКИ (DB) -->
-    <div id="loadingOverlay" class="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/80 transition-opacity duration-500">
-        <div class="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-yellow-400 font-bold tracking-widest uppercase text-sm">Синхронизация прогресса...</p>
+    <div id="loadingOverlay" class="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/85 transition-opacity duration-500">
+        <div class="w-14 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-yellow-400 font-bold tracking-widest uppercase text-sm">Синхронизация аккаунта...</p>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ / РЕГИСТРАЦИИ -->
+    <div id="authModal" class="fixed inset-0 z-[900] flex items-center justify-center bg-black/90 p-4 hidden">
+        <div class="bg-slate-900 border-2 border-yellow-500/80 p-6 rounded-3xl max-w-sm w-full shadow-2xl flex flex-col">
+            <h3 id="authTitle" class="title-font text-2xl text-yellow-400 text-center mb-2">ВХОД В АККАУНТ</h3>
+            <p class="text-xs text-gray-400 text-center mb-6">Войдите или зарегистрируйтесь, чтобы сохранять баланс и карты!</p>
+            
+            <div class="flex flex-col gap-3">
+                <div>
+                    <label class="text-[10px] text-gray-400 uppercase font-bold">E-mail</label>
+                    <input type="email" id="authEmail" placeholder="your@email.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white outline-none focus:border-yellow-500">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 uppercase font-bold">Пароль</label>
+                    <input type="password" id="authPassword" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white outline-none focus:border-yellow-500">
+                </div>
+                
+                <p id="authError" class="text-xs text-red-400 font-bold text-center min-h-[1rem]"></p>
+
+                <button id="btnAuthSubmit" onclick="handleAuthSubmit()" class="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black font-black py-3 rounded-xl uppercase text-sm shadow-lg transition active:scale-95 mt-1">Войти</button>
+                
+                <div class="flex justify-between items-center mt-3 text-xs">
+                    <button onclick="toggleAuthMode()" id="btnToggleAuth" class="text-yellow-400 hover:underline">Создать новый аккаунт</button>
+                    <button onclick="closeAuthModal()" class="text-gray-400 hover:text-white">Отмена</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ТОП БАР -->
-    <div class="w-full bg-black/80 backdrop-blur-md p-4 sticky top-0 z-50 flex justify-between items-center border-b border-gray-700 shadow-xl">
-        <button id="btnBack" onclick="switchView('viewMenu')" class="hidden text-gray-400 font-bold hover:text-white transition flex items-center gap-1">
+    <div class="w-full bg-black/80 backdrop-blur-md p-3 sticky top-0 z-50 flex justify-between items-center border-b border-gray-700 shadow-xl">
+        <button id="btnBack" onclick="switchView('viewMenu')" class="hidden text-gray-400 font-bold hover:text-white transition flex items-center gap-1 text-sm">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Лобби
         </button>
-        <div id="topTitle" class="title-font text-xl text-yellow-400 mx-auto filter drop-shadow-md">КАЗИНО АБАТА</div>
-        <div class="flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">
-            <span class="text-xs text-gray-400 uppercase hidden sm:inline">Баланс:</span>
-            <span id="globalBalance" class="font-mono text-green-400 font-bold text-lg">500 $</span>
+        <div id="topTitle" class="title-font text-lg sm:text-xl text-yellow-400 mx-auto filter drop-shadow-md">КАЗИНО АБАТА</div>
+        
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">
+                <span id="globalBalance" class="font-mono text-green-400 font-bold text-sm sm:text-base">500 $</span>
+            </div>
+            <!-- КНОПКА АККАУНТА -->
+            <button onclick="openAuthModal()" id="userBtn" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                <span>👤</span>
+                <span id="userBtnText" class="hidden sm:inline">Войти</span>
+            </button>
         </div>
     </div>
 
@@ -115,10 +172,10 @@
         <!-- ================= МЕНЮ ================= -->
         <div id="viewMenu" class="w-full flex flex-col gap-4 pb-10">
             
-            <h2 class="title-font text-3xl text-center mb-2 mt-2 filter drop-shadow-md text-white">ВЫБЕРИ ИГРУ</h2>
+            <h2 class="title-font text-3xl text-center mb-1 mt-2 filter drop-shadow-md text-white">ВЫБЕРИ ИГРУ</h2>
 
             <!-- ДЖЕКПОТ ВАЙФУ -->
-            <div class="game-card bg-gradient-to-r from-pink-600 via-rose-600 to-purple-700 p-6 rounded-2xl cursor-pointer border-2 border-pink-400/80 shadow-[0_0_20px_rgba(236,72,153,0.5)]" onclick="switchView('viewGacha')">
+            <div class="game-card bg-gradient-to-r from-pink-600 via-rose-600 to-purple-700 p-5 rounded-2xl cursor-pointer border-2 border-pink-400/80 shadow-[0_0_20px_rgba(236,72,153,0.5)]" onclick="switchView('viewGacha')">
                 <div class="flex justify-between items-center mb-1">
                     <h3 class="title-font text-2xl text-white">🎰 ДЖЕКПОТ ВАЙФУ</h3>
                     <span class="bg-yellow-400 text-black font-black text-[10px] px-2 py-0.5 rounded-full uppercase">1M $</span>
@@ -141,26 +198,26 @@
             <div class="w-full h-px bg-slate-700 my-1"></div>
 
             <!-- Академия -->
-            <div class="game-card bg-gradient-to-r from-purple-700 to-indigo-800 p-6 rounded-2xl cursor-pointer border border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]" onclick="switchView('viewWork')">
+            <div class="game-card bg-gradient-to-r from-purple-700 to-indigo-800 p-5 rounded-2xl cursor-pointer border border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]" onclick="switchView('viewWork')">
                 <h3 class="title-font text-2xl mb-1 text-white">🎓 АКАДЕМИЯ (ЗАРАБОТОК)</h3>
-                <p class="text-xs text-purple-200">Отвечай на вопросы и получай деньги для джекпота.</p>
+                <p class="text-xs text-purple-200">Отвечай на вопросы и честно зарабатывай на крутки!</p>
             </div>
 
             <div class="w-full h-px bg-slate-700 my-1"></div>
 
-            <div class="game-card bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-2xl cursor-pointer border border-orange-400/50" onclick="switchView('viewSlots')">
-                <h3 class="title-font text-3xl mb-1 text-white">🎰 SLOTS 777</h3>
-                <p class="text-sm text-orange-200">Классический бандит. Джекпот x100!</p>
+            <div class="game-card bg-gradient-to-r from-orange-600 to-red-600 p-5 rounded-2xl cursor-pointer border border-orange-400/50" onclick="switchView('viewSlots')">
+                <h3 class="title-font text-2xl mb-1 text-white">🎰 SLOTS 777</h3>
+                <p class="text-xs text-orange-200">Классический бандит. Джекпот x100!</p>
             </div>
 
-            <div class="game-card bg-gradient-to-r from-blue-600 to-sky-700 p-6 rounded-2xl cursor-pointer border border-blue-400/50" onclick="switchView('viewPlinko')">
-                <h3 class="title-font text-3xl mb-1 text-white">🔴 PLINKO</h3>
-                <p class="text-sm text-blue-200">Бросай шарики. Высокий риск!</p>
+            <div class="game-card bg-gradient-to-r from-blue-600 to-sky-700 p-5 rounded-2xl cursor-pointer border border-blue-400/50" onclick="switchView('viewPlinko')">
+                <h3 class="title-font text-2xl mb-1 text-white">🔴 PLINKO (HARD)</h3>
+                <p class="text-xs text-blue-200">Бросай шарики. Экстремальный риск!</p>
             </div>
 
-            <div class="game-card bg-gradient-to-r from-slate-700 to-gray-900 p-6 rounded-2xl cursor-pointer border border-slate-500/50" onclick="switchView('viewBlackjack')">
-                <h3 class="title-font text-3xl mb-1 text-white">🃏 БЛЭКДЖЕК</h3>
-                <p class="text-sm text-gray-300">Обыграй дилера (21 очко).</p>
+            <div class="game-card bg-gradient-to-r from-slate-700 to-gray-900 p-5 rounded-2xl cursor-pointer border border-slate-500/50" onclick="switchView('viewBlackjack')">
+                <h3 class="title-font text-2xl mb-1 text-white">🃏 БЛЭКДЖЕК</h3>
+                <p class="text-xs text-gray-300">Обыграй дилера (21 очко).</p>
             </div>
         </div>
 
@@ -178,14 +235,12 @@
                     <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-yellow-400 z-30"></div>
                     
                     <!-- Лента рулетки -->
-                    <div id="gachaReel" class="flex gap-3 absolute left-0 will-change-transform transition-all">
-                        <!-- Заполняется из JS -->
-                    </div>
+                    <div id="gachaReel" class="flex gap-3 absolute left-0 will-change-transform transition-all"></div>
                 </div>
 
                 <div class="mt-6 w-full flex flex-col items-center">
                     <p class="text-xs text-gray-400 mb-2 font-mono">Стоимость 1 крутки: <span class="text-yellow-400 font-bold">1 000 000 $</span></p>
-                    <button id="btnSpinGacha" onclick="spinGacha()" class="w-full max-w-xs bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_20px_rgba(236,72,153,0.5)] border-2 border-pink-300 transition active:scale-95 uppercase">Крутить за 1M $</button>
+                    <button id="btnSpinGacha" onclick="spinGacha()" class="w-full max-w-xs bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-lg py-4 rounded-xl shadow-[0_5px_20px_rgba(236,72,153,0.5)] border-2 border-pink-300 transition active:scale-95 uppercase">Крутить за 1M $</button>
                 </div>
             </div>
 
@@ -200,15 +255,13 @@
             <h2 class="title-font text-3xl mb-1 mt-2 text-yellow-400 text-center">ПОКЕМОН-КАРТЫ</h2>
             <p class="text-xs text-gray-400 text-center mb-6">Собрано персонажей: <span id="collectionSubCounter" class="text-yellow-400 font-bold">0 / 20</span></p>
 
-            <div id="collectionGrid" class="grid grid-cols-2 gap-4 w-full">
-                <!-- Карточки выводятся из JS -->
-            </div>
+            <div id="collectionGrid" class="grid grid-cols-2 gap-4 w-full"></div>
         </div>
 
         <!-- ================= ЗАРАБОТОК ================= -->
         <div id="viewWork" class="hidden w-full flex flex-col items-center">
-            <h2 class="title-font text-2xl mb-4 mt-4 text-purple-400 text-center">АКАДЕМИЯ АБАТА</h2>
-            <p class="text-sm text-gray-400 text-center mb-6">Выберите предмет. За правильный ответ вы получите доллары на баланс.</p>
+            <h2 class="title-font text-2xl mb-2 mt-2 text-purple-400 text-center">АКАДЕМИЯ АБАТА</h2>
+            <p class="text-xs text-gray-400 text-center mb-6">Выберите предмет. За правильный ответ вы получите деньги на баланс.</p>
             
             <div id="workCategories" class="grid grid-cols-2 gap-3 w-full">
                 <button onclick="loadQuestion('math')" class="bg-blue-900/50 border border-blue-500 hover:bg-blue-800 p-4 rounded-xl font-bold text-blue-200 transition">📐 Математика</button>
@@ -223,7 +276,7 @@
                     <span id="qSubject" class="text-xs uppercase font-bold text-gray-400">Предмет</span>
                     <span id="qReward" class="text-sm font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded">Награда: 0 $</span>
                 </div>
-                <p id="qText" class="text-lg font-bold mb-4 text-white">Текст вопроса?</p>
+                <p id="qText" class="text-base font-bold mb-4 text-white">Текст вопроса?</p>
                 
                 <input type="text" id="qInput" placeholder="Ваш ответ..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white mb-4 outline-none focus:border-purple-500">
                 
@@ -235,69 +288,86 @@
             </div>
         </div>
 
-        <!-- ================= СЛОТЫ ================= -->
+        <!-- ================= ИСПРАВЛЕННЫЙ И ИДЕАЛЬНЫЙ СЛОТ-АППАРАТ ================= -->
         <div id="viewSlots" class="hidden w-full flex flex-col items-center">
-            <div class="relative max-w-sm w-full mt-4 flex flex-col items-center">
-                <div class="slot-machine w-full max-w-[280px]">
-                    <div class="bg-black/50 rounded-lg p-2 mb-4 border border-orange-900/50 text-center">
-                        <div class="flex justify-center gap-4 text-[10px] font-mono text-gray-300">
+            <div class="w-full max-w-xs mt-2 flex flex-col items-center">
+                
+                <!-- Аппарат -->
+                <div class="slot-machine-casing w-full p-4 flex flex-col items-center">
+                    
+                    <!-- Верхнее табло комбинаций -->
+                    <div class="w-full bg-slate-950/80 rounded-xl p-2.5 mb-4 border border-amber-500/30 text-center">
+                        <div class="flex justify-center gap-3 text-[10px] font-mono text-gray-300">
                             <span>🍒🍒=x1</span> <span>🍋🍋🍋=x5</span>
                         </div>
-                        <div class="flex justify-center gap-4 text-[10px] font-mono text-gray-300 mt-1">
+                        <div class="flex justify-center gap-3 text-[10px] font-mono text-gray-300 mt-1">
                             <span class="text-blue-400">💎💎💎=x25</span> <span class="text-red-500 font-bold">7️⃣7️⃣7️⃣=JACKPOT</span>
                         </div>
                     </div>
-                    <div class="slots-display mx-auto w-max">
-                        <div class="slots-overlay"></div>
-                        <div class="reel-container"><div class="reel-strip" id="reel1"></div></div>
-                        <div class="reel-container"><div class="reel-strip" id="reel2"></div></div>
-                        <div class="reel-container"><div class="reel-strip" id="reel3"></div></div>
+
+                    <!-- Окно барабанов -->
+                    <div class="slots-display-frame p-2 mb-4 w-full flex justify-center gap-2">
+                        <div class="reel-box"><div class="reel-strip" id="reel1"></div></div>
+                        <div class="reel-box"><div class="reel-strip" id="reel2"></div></div>
+                        <div class="reel-box"><div class="reel-strip" id="reel3"></div></div>
                     </div>
-                </div>
-                
-                <div class="mt-4 bg-black/60 p-4 rounded-xl border border-orange-900 w-full max-w-[280px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <button onclick="changeBet(-1000)" class="w-10 h-10 bg-slate-800 rounded text-white font-bold border border-slate-600">-</button>
-                        <input type="number" id="betSlots" value="10000" class="w-24 bg-transparent text-center text-lg font-bold font-mono outline-none">
-                        <button onclick="changeBet(1000)" class="w-10 h-10 bg-slate-800 rounded text-white font-bold border border-slate-600">+</button>
+
+                    <!-- Панель управления -->
+                    <div class="w-full bg-slate-950/90 p-3 rounded-xl border border-slate-800 flex flex-col gap-3">
+                        <div class="flex items-center justify-between">
+                            <button onclick="changeBet(-50)" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-black border border-slate-600">-</button>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] text-gray-400 uppercase font-bold">Ваша Ставка</span>
+                                <input type="number" id="betSlots" value="100" class="w-20 bg-transparent text-center text-lg font-black font-mono text-yellow-400 outline-none">
+                            </div>
+                            <button onclick="changeBet(50)" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-black border border-slate-600">+</button>
+                        </div>
+
+                        <button id="btnSpinSlot" onclick="pullLever()" class="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-white font-black text-xl py-3.5 rounded-xl shadow-lg border-2 border-yellow-300/60 transition active:scale-95 uppercase">Крутить</button>
+                        
+                        <button id="btnSkip" onclick="skipSlotSpin()" class="w-full py-1.5 bg-yellow-600/10 hover:bg-yellow-600/30 text-yellow-500 text-[11px] uppercase font-bold rounded-lg border border-yellow-600/30 opacity-50 cursor-not-allowed transition" disabled>Пропустить ⏩</button>
                     </div>
-                    <button id="btnSpinSlot" onclick="pullLever()" class="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-black text-2xl py-4 rounded-xl shadow-[0_5px_15px_rgba(220,38,38,0.5)] border-2 border-orange-300 transition active:scale-95">КРУТИТЬ</button>
-                    <button id="btnSkip" onclick="skipSlotSpin()" class="w-full mt-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-500 text-xs uppercase font-bold rounded border border-yellow-600/50 opacity-50 cursor-not-allowed transition" disabled>Пропустить ⏩</button>
+
                 </div>
+
             </div>
         </div>
 
-        <!-- ================= PLINKO ================= -->
+        <!-- ================= PLINKO (ЕЩЁ МЕНЬШЕ ШАНС) ================= -->
         <div id="viewPlinko" class="hidden w-full flex flex-col items-center">
-            <h2 class="title-font text-2xl mb-2 text-blue-400 mt-4">PLINKO (HARD)</h2>
-            <div class="relative mb-4">
-                <canvas id="plinkoCanvas" width="320" height="400" class="bg-slate-900 border-2 border-slate-700 rounded-xl"></canvas>
-                <div class="flex justify-between w-full px-2 mt-1 gap-1 text-white">
-                    <div class="text-center font-bold text-[9px] bg-red-600 flex-1 rounded py-0.5">x0</div>
-                    <div class="text-center font-bold text-[9px] bg-red-500 flex-1 rounded py-0.5">x0.1</div>
-                    <div class="text-center font-bold text-[9px] bg-orange-500 flex-1 rounded py-0.5">x0.3</div>
-                    <div class="text-center font-bold text-[9px] bg-amber-500 flex-1 rounded py-0.5">x0.8</div>
-                    <div class="text-center font-bold text-[9px] bg-emerald-500 flex-1 rounded py-0.5">x3</div>
-                    <div class="text-center font-bold text-[9px] bg-amber-500 flex-1 rounded py-0.5">x0.8</div>
-                    <div class="text-center font-bold text-[9px] bg-orange-500 flex-1 rounded py-0.5">x0.3</div>
-                    <div class="text-center font-bold text-[9px] bg-red-500 flex-1 rounded py-0.5">x0.1</div>
-                    <div class="text-center font-bold text-[9px] bg-red-600 flex-1 rounded py-0.5">x0</div>
+            <h2 class="title-font text-2xl mb-1 text-blue-400 mt-2">PLINKO (HARD)</h2>
+            <p class="text-[11px] text-gray-400 mb-3">Центральные слоты забирают ставку!</p>
+            
+            <div class="relative mb-3">
+                <canvas id="plinkoCanvas" width="320" height="380" class="bg-slate-900 border-2 border-slate-700 rounded-xl"></canvas>
+                <!-- Максимально урезанные коэффиценты -->
+                <div class="flex justify-between w-full px-1 mt-1 gap-1 text-white">
+                    <div class="text-center font-bold text-[8px] bg-red-700 flex-1 rounded py-0.5">x0</div>
+                    <div class="text-center font-bold text-[8px] bg-red-600 flex-1 rounded py-0.5">x0.05</div>
+                    <div class="text-center font-bold text-[8px] bg-red-500 flex-1 rounded py-0.5">x0.1</div>
+                    <div class="text-center font-bold text-[8px] bg-orange-500 flex-1 rounded py-0.5">x0.5</div>
+                    <div class="text-center font-bold text-[8px] bg-emerald-500 flex-1 rounded py-0.5">x2</div>
+                    <div class="text-center font-bold text-[8px] bg-orange-500 flex-1 rounded py-0.5">x0.5</div>
+                    <div class="text-center font-bold text-[8px] bg-red-500 flex-1 rounded py-0.5">x0.1</div>
+                    <div class="text-center font-bold text-[8px] bg-red-600 flex-1 rounded py-0.5">x0.05</div>
+                    <div class="text-center font-bold text-[8px] bg-red-700 flex-1 rounded py-0.5">x0</div>
                 </div>
             </div>
+            
             <div class="w-full max-w-[320px] bg-slate-800 p-3 rounded-xl flex items-center justify-between">
                 <div class="flex items-center">
-                    <button onclick="changeBet(-1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
-                    <input type="number" id="betPlinko" value="5000" class="w-20 bg-transparent text-center font-bold outline-none text-sm">
-                    <button onclick="changeBet(1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
+                    <button onclick="changeBet(-50)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
+                    <input type="number" id="betPlinko" value="100" class="w-16 bg-transparent text-center font-bold outline-none text-sm text-yellow-400">
+                    <button onclick="changeBet(50)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
                 </div>
                 <button onclick="dropPlinkoBall()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg font-bold uppercase shadow-lg transition active:scale-95 text-sm">Бросить</button>
             </div>
         </div>
 
         <!-- ================= БЛЭКДЖЕК ================= -->
-        <div id="viewBlackjack" class="hidden w-full flex flex-col items-center max-w-sm mt-4">
-            <h2 class="title-font text-2xl mb-4 text-slate-200">BLACKJACK</h2>
-            <div class="w-full bg-green-900/40 p-4 rounded-2xl border border-green-800 min-h-[300px] flex flex-col justify-between mb-4">
+        <div id="viewBlackjack" class="hidden w-full flex flex-col items-center max-w-sm mt-2">
+            <h2 class="title-font text-2xl mb-3 text-slate-200">BLACKJACK</h2>
+            <div class="w-full bg-green-900/40 p-4 rounded-2xl border border-green-800 min-h-[280px] flex flex-col justify-between mb-4">
                 <div class="mb-4">
                     <div class="text-gray-300 text-sm mb-2 flex justify-between">
                         <span>Дилер</span> <span id="dealerScore" class="font-bold">?</span>
@@ -313,9 +383,9 @@
             </div>
             <div id="bjBetControls" class="w-full flex items-center justify-between bg-slate-800 p-3 rounded-xl mb-2">
                 <div class="flex items-center">
-                    <button onclick="changeBet(-1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
-                    <input type="number" id="betBj" value="10000" class="w-20 bg-transparent text-center font-bold outline-none text-sm">
-                    <button onclick="changeBet(1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
+                    <button onclick="changeBet(-50)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
+                    <input type="number" id="betBj" value="100" class="w-16 bg-transparent text-center font-bold outline-none text-sm text-yellow-400">
+                    <button onclick="changeBet(50)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
                 </div>
                 <button onclick="startBj()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold uppercase shadow-lg transition">Раздать</button>
             </div>
@@ -332,14 +402,12 @@
     <div id="cardDropModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/90 hidden opacity-0 transition-opacity duration-300 p-4">
         <div class="flex flex-col items-center max-w-sm w-full transform scale-95 transition-transform duration-300">
             <h3 class="title-font text-2xl text-yellow-400 mb-2 filter drop-shadow">НОВАЯ ПОКЕМОН-КАРТА!</h3>
-            
             <div id="droppedCardContainer" class="w-64 h-96 my-2"></div>
-
             <button onclick="closeCardModal()" class="mt-4 px-8 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black rounded-full uppercase shadow-xl hover:scale-105 transition">Забрать в коллекцию</button>
         </div>
     </div>
 
-    <!-- МОДАЛКА ОБЫЧНОГО ВЫИГРЫША -->
+    <!-- МОДАЛКА ВЫИГРЫША -->
     <div id="winModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/90 hidden opacity-0 transition-opacity duration-300">
         <div class="bg-gradient-to-b from-slate-900 to-black p-8 rounded-3xl border-4 border-yellow-500 text-center max-w-sm w-full transform scale-95 transition-transform duration-300 mx-4">
             <h2 id="winTitle" class="title-font text-4xl mb-2 text-yellow-400">ПОБЕДА!</h2>
@@ -350,7 +418,15 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getAuth, 
+            signInWithCustomToken, 
+            signInAnonymously, 
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         /* ================= ГЛОБАЛЬНЫЕ ================= */
@@ -359,9 +435,11 @@
         let currentGame = 'viewMenu';
         let currentUser = null;
         let db = null;
+        let auth = null;
+        let isAuthSignUpMode = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'casino-abata';
 
-        /* 20 ПЕРСОНАЖЕЙ ВАЙФУ С ПРЯМЫМИ ССЫЛКАМИ И ХАРАКТЕРИСТИКАМИ КАРТОЧЕК */
+        /* 20 ПЕРСОНАЖЕЙ ВАЙФУ С ВАШИМИ ССЫЛКАМИ */
         const WAIFUS = [
             { id: 'w1', name: 'Мейшо Дото', title: 'Девочка-лошадка', hp: '180', attack: '210', image: 'https://cdn.donmai.us/original/79/a8/79a8949b54afd26d495e1186697dd42a.png', rarity: '★ SR' },
             { id: 'w2', name: 'Марин Китагава', title: 'Эта фарфоровая кукла', hp: '220', attack: '250', image: 'https://img10.joyreactor.cc/pics/post/Anime-%D1%84%D1%8D%D0%BD%D0%B4%D0%BE%D0%BC%D1%8B-Sono-Bisque-Doll-wa-Koi-wo-Suru-7854927.jpeg', rarity: '★★ SSR' },
@@ -395,7 +473,7 @@
                 }
 
                 const app = initializeApp(JSON.parse(firebaseConfigStr));
-                const auth = getAuth(app);
+                auth = getAuth(app);
                 db = getFirestore(app);
 
                 const initAuth = async () => {
@@ -409,8 +487,10 @@
                 onAuthStateChanged(auth, async (u) => {
                     currentUser = u;
                     if (currentUser) {
+                        updateUserUI();
                         await loadProgress();
                     } else {
+                        updateUserUI();
                         hideLoading();
                     }
                 });
@@ -432,6 +512,10 @@
                     const data = snap.data();
                     if(data.balance !== undefined) BALANCE = data.balance;
                     if(data.inventory) INVENTORY = data.inventory;
+                } else {
+                    BALANCE = 500;
+                    INVENTORY = [];
+                    await scheduleSave();
                 }
                 updateBalanceUI();
                 renderCollection();
@@ -451,16 +535,79 @@
                     const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'progress');
                     await setDoc(docRef, { balance: BALANCE, inventory: INVENTORY }, { merge: true });
                 } catch(e) { console.error("Save error", e); }
-            }, 1000);
+            }, 800);
         }
 
         function hideLoading() {
             const l = document.getElementById('loadingOverlay');
             if(l) {
                 l.style.opacity = '0';
-                setTimeout(() => l.style.display = 'none', 500);
+                setTimeout(() => l.style.display = 'none', 400);
             }
         }
+
+        /* УПРАВЛЕНИЕ АККАУНТОМ И АВТОРИЗАЦИЕЙ */
+        function updateUserUI() {
+            const userBtnText = document.getElementById('userBtnText');
+            if(currentUser && !currentUser.isAnonymous) {
+                userBtnText.innerText = currentUser.email.split('@')[0];
+            } else {
+                userBtnText.innerText = "Войти";
+            }
+        }
+
+        window.openAuthModal = function() {
+            if(currentUser && !currentUser.isAnonymous) {
+                if(confirm(`Вы вошли как ${currentUser.email}. Выйти из аккаунта?`)) {
+                    signOut(auth).then(() => {
+                        signInAnonymously(auth);
+                        showToast("Вы вышли из аккаунта");
+                    });
+                }
+                return;
+            }
+            document.getElementById('authError').innerText = '';
+            document.getElementById('authModal').classList.remove('hidden');
+        };
+
+        window.closeAuthModal = function() {
+            document.getElementById('authModal').classList.add('hidden');
+        };
+
+        window.toggleAuthMode = function() {
+            isAuthSignUpMode = !isAuthSignUpMode;
+            document.getElementById('authTitle').innerText = isAuthSignUpMode ? "РЕГИСТРАЦИЯ" : "ВХОД В АККАУНТ";
+            document.getElementById('btnAuthSubmit').innerText = isAuthSignUpMode ? "Создать аккаунт" : "Войти";
+            document.getElementById('btnToggleAuth').innerText = isAuthSignUpMode ? "Уже есть аккаунт? Войти" : "Создать новый аккаунт";
+            document.getElementById('authError').innerText = '';
+        };
+
+        window.handleAuthSubmit = async function() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+            const errEl = document.getElementById('authError');
+
+            if(!email || !password) {
+                errEl.innerText = "Заполните все поля!";
+                return;
+            }
+
+            errEl.innerText = "Загрузка...";
+
+            try {
+                if(isAuthSignUpMode) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showToast("Аккаунт создан!");
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showToast("Успешный вход!");
+                }
+                closeAuthModal();
+            } catch(e) {
+                console.error(e);
+                errEl.innerText = "Ошибка: " + (e.message.includes('auth/invalid-email') ? 'Неверный E-mail' : e.message.includes('auth/wrong-password') ? 'Неверный пароль' : e.message.includes('auth/email-already-in-use') ? 'E-mail уже занят' : 'Ошибка авторизации');
+            }
+        };
 
         /* UI Helpers */
         function showToast(msg, isError = false) {
@@ -526,10 +673,10 @@
             const input = getActiveBetInput();
             if(!input) return;
             playTone(1200, 'square', 0.05, 0.05);
-            let val = parseInt(input.value) || 1000;
+            let val = parseInt(input.value) || 50;
             val += delta;
-            if(val < 1000) val = 1000;
-            if(val > Math.max(BALANCE, 1000)) val = Math.max(BALANCE, 1000);
+            if(val < 10) val = 10;
+            if(val > Math.max(BALANCE, 10)) val = Math.max(BALANCE, 10);
             input.value = val;
         }
 
@@ -674,33 +821,33 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
-        /* ================= АКАДЕМИЯ АБАТА ================= */
+        /* ================= АКАДЕМИЯ АБАТА (УМЕНЬШЕННАЯ НАГРАДА) ================= */
         const QUIZ = {
             math: [
-                {q: "Сколько будет 2 + 2 * 2?", a: "6", reward: 100000},
-                {q: "Корень из 144?", a: "12", reward: 120000},
-                {q: "Чему равна площадь квадрата со стороной 5?", a: "25", reward: 100000},
-                {q: "100 разделить на 0.5?", a: "200", reward: 150000}
+                {q: "Сколько будет 2 + 2 * 2?", a: "6", reward: 2500},
+                {q: "Корень из 144?", a: "12", reward: 3000},
+                {q: "Чему равна площадь квадрата со стороной 5?", a: "25", reward: 2000},
+                {q: "100 разделить на 0.5?", a: "200", reward: 4000}
             ],
             it: [
-                {q: "Сколько бит в одном байте?", a: "8", reward: 100000},
-                {q: "Как называется основной язык стилей веб-страниц? (аббревиатура)", a: "css", reward: 120000},
-                {q: "HTML - это язык программирования? (да/нет)", a: "нет", reward: 80000}
+                {q: "Сколько бит в одном байте?", a: "8", reward: 2500},
+                {q: "Как называется основной язык стилей веб-страниц? (аббревиатура)", a: "css", reward: 3500},
+                {q: "HTML - это язык программирования? (да/нет)", a: "нет", reward: 1500}
             ],
             biology: [
-                {q: "Сколько хромосом у здорового человека?", a: "46", reward: 150000},
-                {q: "Какой газ растения поглощают при фотосинтезе?", a: "углекислый", reward: 130000},
-                {q: "Самая большая кость в теле человека?", a: "бедренная", reward: 200000}
+                {q: "Сколько хромосом у здорового человека?", a: "46", reward: 4000},
+                {q: "Какой газ растения поглощают при фотосинтезе?", a: "углекислый", reward: 3000},
+                {q: "Самая большая кость в теле человека?", a: "бедренная", reward: 5000}
             ],
             physics: [
-                {q: "В чем измеряется сила тока? (слово)", a: "ампер", reward: 150000},
-                {q: "Формула силы: F = m * ? (введите букву)", a: "a", reward: 120000},
-                {q: "Скорость света в вакууме примерно равна ... тыс. км/с (число)", a: "300", reward: 200000}
+                {q: "В чем измеряется сила тока? (слово)", a: "ампер", reward: 3500},
+                {q: "Формула силы: F = m * ? (введите букву)", a: "a", reward: 2500},
+                {q: "Скорость света в вакууме примерно равна ... тыс. км/с (число)", a: "300", reward: 5000}
             ],
             english: [
-                {q: "Переведите на английский: 'Яблоко'", a: "apple", reward: 80000},
-                {q: "Прошедшее время глагола 'go'?", a: "went", reward: 100000},
-                {q: "Переведите на русский: 'Always'", a: "всегда", reward: 80000}
+                {q: "Переведите на английский: 'Яблоко'", a: "apple", reward: 1500},
+                {q: "Прошедшее время глагола 'go'?", a: "went", reward: 2000},
+                {q: "Переведите на русский: 'Always'", a: "всегда", reward: 1500}
             ]
         };
 
@@ -744,7 +891,7 @@
                 
                 setTimeout(() => {
                     window.backToCategories();
-                }, 1500);
+                }, 1200);
             } else {
                 playTone(200, 'sawtooth', 0.3);
                 feedback.innerText = "Неверный ответ. Попробуйте еще раз.";
@@ -810,7 +957,7 @@
             document.getElementById('winTitle').innerText = titleText;
             document.getElementById('winAmount').innerText = `+${amount.toLocaleString('ru-RU')} $`;
             
-            playWinSound(amount >= 200000);
+            playWinSound(amount >= 500);
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.remove('opacity-0'), 10);
         }
@@ -820,7 +967,7 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
-        /* ================= СЛОТЫ ================= */
+        /* ================= ИСПРАВЛЕННЫЕ СЛОТЫ ================= */
         const ICONS = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
         const OUTCOMES = [
             { type: 'loss', weight: 65, mult: 0 },
@@ -846,8 +993,8 @@
             if (isSpinningSlots) return;
             const betInput = document.getElementById('betSlots');
             let bet = parseInt(betInput.value);
-            if(isNaN(bet) || bet < 1000) bet = 1000;
-            if (bet > Math.max(BALANCE, 1000)) bet = Math.max(BALANCE, 1000);
+            if(isNaN(bet) || bet < 10) bet = 10;
+            if (bet > Math.max(BALANCE, 10)) bet = Math.max(BALANCE, 10);
             
             if (BALANCE < bet) {
                 showToast("Недостаточно средств!", true);
@@ -899,7 +1046,7 @@
                     strips.forEach((strip, index) => {
                         const duration = 2 + (index * 0.5); 
                         strip.style.transition = `transform ${duration}s cubic-bezier(0.1, 0.9, 0.2, 1)`;
-                        strip.style.transform = `translate3d(0, -${(TOTAL_SYMBOLS - 1) * 100}px, 0)`;
+                        strip.style.transform = `translate3d(0, -${(TOTAL_SYMBOLS - 1) * 96}px, 0)`;
                         slotTimeouts.push(setTimeout(() => playTone(300 + index*100, 'square', 0.1, 0.1), duration*1000));
                     });
                     slotTimeouts.push(setTimeout(finishSlotSpin, 3100));
@@ -914,7 +1061,7 @@
             
             strips.forEach((strip) => {
                 strip.style.transition = 'none';
-                strip.style.transform = `translate3d(0, -${(TOTAL_SYMBOLS - 1) * 100}px, 0)`;
+                strip.style.transform = `translate3d(0, -${(TOTAL_SYMBOLS - 1) * 96}px, 0)`;
             });
             playTone(400, 'square', 0.1, 0.1);
             finishSlotSpin();
@@ -942,12 +1089,12 @@
             });
         }
 
-        /* ================= PLINKO ================= */
+        /* ================= PLINKO (ЕЩЁ МЕНЬШЕ ШАНСЫ) ================= */
         const plinkoCanvas = document.getElementById('plinkoCanvas');
         const pCtx = plinkoCanvas.getContext('2d');
         const plinkoRows = 8;
         const pRadius = 6;
-        const multipliers = [0, 0.1, 0.3, 0.8, 3, 0.8, 0.3, 0.1, 0];
+        const multipliers = [0, 0.05, 0.1, 0.5, 2, 0.5, 0.1, 0.05, 0];
         
         let plinkoBalls = [];
         let plinkoAnimId = null;
@@ -960,7 +1107,7 @@
                 let startX = (plinkoCanvas.width - (cols-1)*35) / 2;
                 for(let c=0; c<cols; c++) {
                     pCtx.beginPath();
-                    pCtx.arc(startX + c*35, 40 + r*40, 3, 0, Math.PI*2);
+                    pCtx.arc(startX + c*35, 35 + r*38, 3, 0, Math.PI*2);
                     pCtx.fill();
                 }
             }
@@ -992,7 +1139,7 @@
                     let win = Math.floor(b.bet * multipliers[b.currentBin]);
                     if (win > 0) {
                         updateBalance(win);
-                        if (multipliers[b.currentBin] >= 3) showWinModal(win, `x${multipliers[b.currentBin]}`);
+                        if (multipliers[b.currentBin] >= 2) showWinModal(win, `x${multipliers[b.currentBin]}`);
                         else {
                             createExplosion(plinkoCanvas.offsetLeft + b.ballX, window.innerHeight/2, '#38bdf8', 15);
                         }
@@ -1012,8 +1159,8 @@
         window.dropPlinkoBall = function() {
             const input = document.getElementById('betPlinko');
             let bet = parseInt(input.value);
-            if(isNaN(bet) || bet < 1000) bet = 1000;
-            if(bet > BALANCE) bet = Math.max(BALANCE, 1000);
+            if(isNaN(bet) || bet < 10) bet = 10;
+            if(bet > BALANCE) bet = Math.max(BALANCE, 10);
             
             if(BALANCE < bet) {
                 showToast("Недостаточно денег ($).", true);
@@ -1029,11 +1176,12 @@
             
             let currentBin = 0; 
             for(let r=0; r<plinkoRows; r++) {
-                let bias = (x > plinkoCanvas.width/2) ? -0.15 : 0.15;
-                let dir = (Math.random() + bias) > 0.5 ? 1 : -1;
+                // Сильное смещение к центру (проигрышные слоты)
+                let centerPull = (x > plinkoCanvas.width/2) ? -0.28 : 0.28;
+                let dir = (Math.random() + centerPull) > 0.5 ? 1 : -1;
 
                 x += dir * 17.5;
-                y += 40;
+                y += 38;
                 if(dir === 1) currentBin++;
                 path.push({x, y});
             }
@@ -1098,8 +1246,8 @@
             if(isBjPlaying) return;
             const input = document.getElementById('betBj');
             let bet = parseInt(input.value);
-            if(isNaN(bet) || bet < 1000) bet = 1000;
-            if(bet > Math.max(BALANCE, 1000)) bet = Math.max(BALANCE, 1000);
+            if(isNaN(bet) || bet < 10) bet = 10;
+            if(bet > Math.max(BALANCE, 10)) bet = Math.max(BALANCE, 10);
             if(BALANCE < bet) return showToast("Мало денег!", true);
 
             updateBalance(-bet);
