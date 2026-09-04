@@ -27,12 +27,11 @@
         .game-card:active { transform: translateY(0) scale(0.98); }
 
         /* Слоты */
-        .slot-machine { background: linear-gradient(180deg, #d97706, #92400e); border-radius: 20px; padding: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 5px 15px rgba(255,255,255,0.3); border: 4px solid #f59e0b; position: relative; z-index: 10; }
+        .slot-machine { background: linear-gradient(180deg, #d97706, #92400e); border-radius: 20px; padding: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 5px 15px rgba(255,255,255,0.3); border: 4px solid #f59e0b; position: relative; z-index: 10; margin: 0 auto; }
         .slots-display { background: #111; border: 4px solid #475569; border-radius: 10px; padding: 10px; display: flex; gap: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.9); position: relative; }
         .slots-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0,0,0,0.8) 100%); pointer-events: none; z-index: 5; border-radius: 6px; }
         .reel-container { width: 80px; height: 100px; background: #fff; border-radius: 5px; overflow: hidden; position: relative; }
         
-        /* Аппаратное ускорение для барабанов */
         .reel-strip { 
             display: flex; 
             flex-direction: column; 
@@ -44,12 +43,6 @@
         }
         
         .symbol { height: 100px; display: flex; justify-content: center; align-items: center; font-size: 50px; filter: drop-shadow(2px 4px 2px rgba(0,0,0,0.3)); }
-        
-        .lever-wrapper { position: absolute; right: -55px; top: 50%; transform: translateY(-50%); width: 60px; height: 220px; perspective: 800px; z-index: 1; }
-        .lever-base { position: absolute; top: 50%; transform: translateY(-50%); left: 5px; width: 30px; height: 80px; background: linear-gradient(to right, #475569, #1e293b, #0f172a); border-radius: 8px 0 0 8px; border: 2px solid #0f172a; border-right: none; }
-        .lever-stick { position: absolute; top: 10px; left: 15px; width: 16px; height: 120px; background: linear-gradient(to right, #e2e8f0, #94a3b8, #64748b); border-radius: 10px; transform-origin: bottom center; transition: transform 0.4s; cursor: pointer; }
-        .lever-knob { position: absolute; top: -25px; left: -15px; width: 46px; height: 46px; background: radial-gradient(circle at 30% 30%, #f87171, #dc2626, #7f1d1d); border-radius: 50%; border: 2px solid #7f1d1d; }
-        .lever-pulled { transform: rotateX(80deg); }
 
         /* Блэкджек */
         .card { width: 60px; height: 90px; background: white; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); margin-right: -30px; position: relative; }
@@ -61,21 +54,58 @@
         input[type=number] { -moz-appearance: textfield; }
 
         #fxCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1000; }
+        
+        /* Loading overlay for DB */
+        #loadingOverlay { backdrop-filter: blur(5px); }
+
+        /* Стиль Покемон-карточки */
+        .poke-card {
+            background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #b45309 100%);
+            border: 4px solid #fef08a;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7), inset 0 0 15px rgba(255,255,255,0.6);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .poke-card:hover {
+            transform: scale(1.03) translateY(-3px);
+            box-shadow: 0 15px 30px rgba(245,158,11,0.5);
+        }
+        .poke-card-inner {
+            background: #1e1b4b;
+            border-radius: 10px;
+            padding: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .poke-card-locked {
+            filter: grayscale(100%) opacity(40%);
+            background: #334155 !important;
+            border-color: #64748b !important;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center">
 
     <canvas id="fxCanvas"></canvas>
 
+    <!-- ИНДИКАТОР ЗАГРУЗКИ (DB) -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/80 transition-opacity duration-500">
+        <div class="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-yellow-400 font-bold tracking-widest uppercase text-sm">Синхронизация прогресса...</p>
+    </div>
+
     <!-- ТОП БАР -->
     <div class="w-full bg-black/80 backdrop-blur-md p-4 sticky top-0 z-50 flex justify-between items-center border-b border-gray-700 shadow-xl">
-        <button id="btnBack" class="hidden text-gray-400 font-bold hover:text-white transition flex items-center gap-1">
+        <button id="btnBack" onclick="switchView('viewMenu')" class="hidden text-gray-400 font-bold hover:text-white transition flex items-center gap-1">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Лобби
         </button>
         <div id="topTitle" class="title-font text-xl text-yellow-400 mx-auto filter drop-shadow-md">КАЗИНО АБАТА</div>
         <div class="flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">
             <span class="text-xs text-gray-400 uppercase hidden sm:inline">Баланс:</span>
-            <span id="globalBalance" class="font-mono text-green-400 font-bold text-lg">1000 ₽</span>
+            <span id="globalBalance" class="font-mono text-green-400 font-bold text-lg">500 $</span>
         </div>
     </div>
 
@@ -87,13 +117,36 @@
             
             <h2 class="title-font text-3xl text-center mb-2 mt-2 filter drop-shadow-md text-white">ВЫБЕРИ ИГРУ</h2>
 
-            <!-- Вкладка Заработка -->
-            <div class="game-card bg-gradient-to-r from-purple-700 to-indigo-800 p-6 rounded-2xl cursor-pointer border-2 border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]" onclick="switchView('viewWork')">
-                <h3 class="title-font text-2xl mb-1 text-white">🎓 АКАДЕМИЯ (ЗАРАБОТОК)</h3>
-                <p class="text-xs text-purple-200">Отвечай на вопросы по предметам и получай баланс для игр.</p>
+            <!-- ДЖЕКПОТ ВАЙФУ -->
+            <div class="game-card bg-gradient-to-r from-pink-600 via-rose-600 to-purple-700 p-6 rounded-2xl cursor-pointer border-2 border-pink-400/80 shadow-[0_0_20px_rgba(236,72,153,0.5)]" onclick="switchView('viewGacha')">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="title-font text-2xl text-white">🎰 ДЖЕКПОТ ВАЙФУ</h3>
+                    <span class="bg-yellow-400 text-black font-black text-[10px] px-2 py-0.5 rounded-full uppercase">1M $</span>
+                </div>
+                <p class="text-xs text-pink-100">Выбивай редких аниме тяночек в виде Покемон-карт!</p>
             </div>
 
-            <div class="w-full h-px bg-slate-700 my-2"></div>
+            <!-- МОЯ КОЛЛЕКЦИЯ -->
+            <div class="game-card bg-gradient-to-r from-amber-600 to-yellow-700 p-4 rounded-2xl cursor-pointer border border-yellow-400/50 shadow-md flex justify-between items-center" onclick="switchView('viewCollection')">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🎴</span>
+                    <div>
+                        <h4 class="title-font text-lg text-white">МОЯ КОЛЛЕКЦИЯ</h4>
+                        <p class="text-[11px] text-yellow-200">Просмотр всех выбитых карт</p>
+                    </div>
+                </div>
+                <span id="collectionCounter" class="font-mono bg-black/40 px-3 py-1 rounded-lg text-yellow-300 font-bold text-sm border border-yellow-500/30">0/20</span>
+            </div>
+
+            <div class="w-full h-px bg-slate-700 my-1"></div>
+
+            <!-- Академия -->
+            <div class="game-card bg-gradient-to-r from-purple-700 to-indigo-800 p-6 rounded-2xl cursor-pointer border border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]" onclick="switchView('viewWork')">
+                <h3 class="title-font text-2xl mb-1 text-white">🎓 АКАДЕМИЯ (ЗАРАБОТОК)</h3>
+                <p class="text-xs text-purple-200">Отвечай на вопросы и получай деньги для джекпота.</p>
+            </div>
+
+            <div class="w-full h-px bg-slate-700 my-1"></div>
 
             <div class="game-card bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-2xl cursor-pointer border border-orange-400/50" onclick="switchView('viewSlots')">
                 <h3 class="title-font text-3xl mb-1 text-white">🎰 SLOTS 777</h3>
@@ -102,12 +155,7 @@
 
             <div class="game-card bg-gradient-to-r from-blue-600 to-sky-700 p-6 rounded-2xl cursor-pointer border border-blue-400/50" onclick="switchView('viewPlinko')">
                 <h3 class="title-font text-3xl mb-1 text-white">🔴 PLINKO</h3>
-                <p class="text-sm text-blue-200">Бросай шарик. Множители до x10.</p>
-            </div>
-
-            <div class="game-card bg-gradient-to-r from-green-600 to-emerald-800 p-6 rounded-2xl cursor-pointer border border-green-400/50" onclick="switchView('viewRoulette')">
-                <h3 class="title-font text-3xl mb-1 text-white">🎡 РУЛЕТКА</h3>
-                <p class="text-sm text-green-200">Красное, Черное или Зеленое?</p>
+                <p class="text-sm text-blue-200">Бросай шарики. Высокий риск!</p>
             </div>
 
             <div class="game-card bg-gradient-to-r from-slate-700 to-gray-900 p-6 rounded-2xl cursor-pointer border border-slate-500/50" onclick="switchView('viewBlackjack')">
@@ -116,12 +164,52 @@
             </div>
         </div>
 
+        <!-- ================= ДЖЕКПОТ ВАЙФУ (ГАЧА) ================= -->
+        <div id="viewGacha" class="hidden w-full flex flex-col items-center pb-20">
+            <h2 class="title-font text-3xl mb-1 mt-2 text-pink-400 text-center filter drop-shadow">ДЖЕКПОТ ВАЙФУ</h2>
+            <p class="text-xs text-gray-400 text-center mb-6">Испытай удачу и выбей уникальные Покемон-карты!</p>
+
+            <!-- Рулетка Джекпота -->
+            <div class="w-full bg-slate-900 p-4 rounded-2xl border-2 border-pink-500/50 shadow-2xl relative overflow-hidden flex flex-col items-center">
+                <div class="w-full h-40 bg-slate-950 rounded-xl border border-slate-700 relative overflow-hidden flex items-center shadow-inner">
+                    <!-- Указатель выигрыша -->
+                    <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 bg-yellow-400 z-30 shadow-[0_0_10px_#facc15]"></div>
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-yellow-400 z-30"></div>
+                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-yellow-400 z-30"></div>
+                    
+                    <!-- Лента рулетки -->
+                    <div id="gachaReel" class="flex gap-3 absolute left-0 will-change-transform transition-all">
+                        <!-- Заполняется из JS -->
+                    </div>
+                </div>
+
+                <div class="mt-6 w-full flex flex-col items-center">
+                    <p class="text-xs text-gray-400 mb-2 font-mono">Стоимость 1 крутки: <span class="text-yellow-400 font-bold">1 000 000 $</span></p>
+                    <button id="btnSpinGacha" onclick="spinGacha()" class="w-full max-w-xs bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_20px_rgba(236,72,153,0.5)] border-2 border-pink-300 transition active:scale-95 uppercase">Крутить за 1M $</button>
+                </div>
+            </div>
+
+            <!-- Кнопка перехода в коллекцию -->
+            <button onclick="switchView('viewCollection')" class="mt-6 bg-slate-800 hover:bg-slate-700 border border-slate-600 py-3 px-6 rounded-xl font-bold text-sm text-yellow-300 flex items-center gap-2 transition">
+                <span>🎴 Перейти в мою коллекцию</span>
+            </button>
+        </div>
+
+        <!-- ================= МОЯ КОЛЛЕКЦИЯ (КАРТОЧКИ) ================= -->
+        <div id="viewCollection" class="hidden w-full flex flex-col items-center pb-20">
+            <h2 class="title-font text-3xl mb-1 mt-2 text-yellow-400 text-center">ПОКЕМОН-КАРТЫ</h2>
+            <p class="text-xs text-gray-400 text-center mb-6">Собрано персонажей: <span id="collectionSubCounter" class="text-yellow-400 font-bold">0 / 20</span></p>
+
+            <div id="collectionGrid" class="grid grid-cols-2 gap-4 w-full">
+                <!-- Карточки выводятся из JS -->
+            </div>
+        </div>
+
         <!-- ================= ЗАРАБОТОК ================= -->
         <div id="viewWork" class="hidden w-full flex flex-col items-center">
-            <h2 class="title-font text-2xl mb-4 text-purple-400 text-center">АКАДЕМИЯ АБАТА</h2>
-            <p class="text-sm text-gray-400 text-center mb-6">Выберите предмет. За правильный ответ вы получите деньги на баланс.</p>
+            <h2 class="title-font text-2xl mb-4 mt-4 text-purple-400 text-center">АКАДЕМИЯ АБАТА</h2>
+            <p class="text-sm text-gray-400 text-center mb-6">Выберите предмет. За правильный ответ вы получите доллары на баланс.</p>
             
-            <!-- Выбор предмета -->
             <div id="workCategories" class="grid grid-cols-2 gap-3 w-full">
                 <button onclick="loadQuestion('math')" class="bg-blue-900/50 border border-blue-500 hover:bg-blue-800 p-4 rounded-xl font-bold text-blue-200 transition">📐 Математика</button>
                 <button onclick="loadQuestion('it')" class="bg-teal-900/50 border border-teal-500 hover:bg-teal-800 p-4 rounded-xl font-bold text-teal-200 transition">💻 Информатика</button>
@@ -130,11 +218,10 @@
                 <button onclick="loadQuestion('english')" class="bg-red-900/50 border border-red-500 hover:bg-red-800 p-4 rounded-xl font-bold text-red-200 col-span-2 transition">🇬🇧 Английский</button>
             </div>
 
-            <!-- Блок вопроса -->
             <div id="questionBlock" class="hidden w-full bg-slate-800 p-6 rounded-2xl border border-slate-600 mt-4 shadow-lg">
                 <div class="flex justify-between items-center mb-4">
                     <span id="qSubject" class="text-xs uppercase font-bold text-gray-400">Предмет</span>
-                    <span id="qReward" class="text-sm font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded">Награда: 0 ₽</span>
+                    <span id="qReward" class="text-sm font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded">Награда: 0 $</span>
                 </div>
                 <p id="qText" class="text-lg font-bold mb-4 text-white">Текст вопроса?</p>
                 
@@ -150,91 +237,65 @@
 
         <!-- ================= СЛОТЫ ================= -->
         <div id="viewSlots" class="hidden w-full flex flex-col items-center">
-            <div class="relative max-w-sm w-full mt-4">
-                <div class="slot-machine">
-                    <!-- Табло -->
+            <div class="relative max-w-sm w-full mt-4 flex flex-col items-center">
+                <div class="slot-machine w-full max-w-[280px]">
                     <div class="bg-black/50 rounded-lg p-2 mb-4 border border-orange-900/50 text-center">
-                        <div class="flex justify-center gap-4 text-xs font-mono text-gray-300">
+                        <div class="flex justify-center gap-4 text-[10px] font-mono text-gray-300">
                             <span>🍒🍒=x1</span> <span>🍋🍋🍋=x5</span>
                         </div>
-                        <div class="flex justify-center gap-4 text-xs font-mono text-gray-300 mt-1">
+                        <div class="flex justify-center gap-4 text-[10px] font-mono text-gray-300 mt-1">
                             <span class="text-blue-400">💎💎💎=x25</span> <span class="text-red-500 font-bold">7️⃣7️⃣7️⃣=JACKPOT</span>
                         </div>
                     </div>
-                    <!-- Барабаны -->
                     <div class="slots-display mx-auto w-max">
                         <div class="slots-overlay"></div>
                         <div class="reel-container"><div class="reel-strip" id="reel1"></div></div>
                         <div class="reel-container"><div class="reel-strip" id="reel2"></div></div>
                         <div class="reel-container"><div class="reel-strip" id="reel3"></div></div>
                     </div>
-                    <!-- Управление -->
-                    <div class="mt-4 bg-black/60 p-3 rounded-xl border border-orange-900">
-                        <div class="flex items-center justify-between">
-                            <button onclick="changeBet(-10)" class="w-10 h-10 bg-slate-800 rounded text-white font-bold border border-slate-600">-</button>
-                            <input type="number" id="betSlots" value="50" class="w-16 bg-transparent text-center text-xl font-bold font-mono outline-none">
-                            <button onclick="changeBet(10)" class="w-10 h-10 bg-slate-800 rounded text-white font-bold border border-slate-600">+</button>
-                        </div>
-                        <button id="btnSkip" class="w-full mt-2 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-500 text-xs uppercase font-bold rounded border border-yellow-600/50 opacity-50 cursor-not-allowed transition" disabled>Пропустить анимацию ⏩</button>
-                    </div>
                 </div>
-                <div class="lever-wrapper">
-                    <div class="lever-base"></div>
-                    <div class="lever-stick" id="leverTrigger"><div class="lever-knob"></div></div>
+                
+                <div class="mt-4 bg-black/60 p-4 rounded-xl border border-orange-900 w-full max-w-[280px]">
+                    <div class="flex items-center justify-between mb-4">
+                        <button onclick="changeBet(-1000)" class="w-10 h-10 bg-slate-800 rounded text-white font-bold border border-slate-600">-</button>
+                        <input type="number" id="betSlots" value="10000" class="w-24 bg-transparent text-center text-lg font-bold font-mono outline-none">
+                        <button onclick="changeBet(1000)" class="w-10 h-10 bg-slate-800 rounded text-white font-bold border border-slate-600">+</button>
+                    </div>
+                    <button id="btnSpinSlot" onclick="pullLever()" class="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-black text-2xl py-4 rounded-xl shadow-[0_5px_15px_rgba(220,38,38,0.5)] border-2 border-orange-300 transition active:scale-95">КРУТИТЬ</button>
+                    <button id="btnSkip" onclick="skipSlotSpin()" class="w-full mt-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-500 text-xs uppercase font-bold rounded border border-yellow-600/50 opacity-50 cursor-not-allowed transition" disabled>Пропустить ⏩</button>
                 </div>
             </div>
         </div>
 
         <!-- ================= PLINKO ================= -->
         <div id="viewPlinko" class="hidden w-full flex flex-col items-center">
-            <h2 class="title-font text-2xl mb-2 text-blue-400 mt-4">PLINKO</h2>
+            <h2 class="title-font text-2xl mb-2 text-blue-400 mt-4">PLINKO (HARD)</h2>
             <div class="relative mb-4">
                 <canvas id="plinkoCanvas" width="320" height="400" class="bg-slate-900 border-2 border-slate-700 rounded-xl"></canvas>
-                <div class="flex justify-between w-full px-2 mt-1 gap-1 text-black">
-                    <div class="text-center font-bold text-[10px] bg-red-400 flex-1 rounded">x0</div>
-                    <div class="text-center font-bold text-[10px] bg-orange-400 flex-1 rounded">x0.5</div>
-                    <div class="text-center font-bold text-[10px] bg-yellow-400 flex-1 rounded">x1.5</div>
-                    <div class="text-center font-bold text-[10px] bg-green-400 flex-1 rounded">x3</div>
-                    <div class="text-center font-bold text-[10px] bg-emerald-400 flex-1 rounded">x10</div>
-                    <div class="text-center font-bold text-[10px] bg-green-400 flex-1 rounded">x3</div>
-                    <div class="text-center font-bold text-[10px] bg-yellow-400 flex-1 rounded">x1.5</div>
-                    <div class="text-center font-bold text-[10px] bg-orange-400 flex-1 rounded">x0.5</div>
-                    <div class="text-center font-bold text-[10px] bg-red-400 flex-1 rounded">x0</div>
+                <div class="flex justify-between w-full px-2 mt-1 gap-1 text-white">
+                    <div class="text-center font-bold text-[9px] bg-red-600 flex-1 rounded py-0.5">x0</div>
+                    <div class="text-center font-bold text-[9px] bg-red-500 flex-1 rounded py-0.5">x0.1</div>
+                    <div class="text-center font-bold text-[9px] bg-orange-500 flex-1 rounded py-0.5">x0.3</div>
+                    <div class="text-center font-bold text-[9px] bg-amber-500 flex-1 rounded py-0.5">x0.8</div>
+                    <div class="text-center font-bold text-[9px] bg-emerald-500 flex-1 rounded py-0.5">x3</div>
+                    <div class="text-center font-bold text-[9px] bg-amber-500 flex-1 rounded py-0.5">x0.8</div>
+                    <div class="text-center font-bold text-[9px] bg-orange-500 flex-1 rounded py-0.5">x0.3</div>
+                    <div class="text-center font-bold text-[9px] bg-red-500 flex-1 rounded py-0.5">x0.1</div>
+                    <div class="text-center font-bold text-[9px] bg-red-600 flex-1 rounded py-0.5">x0</div>
                 </div>
             </div>
             <div class="w-full max-w-[320px] bg-slate-800 p-3 rounded-xl flex items-center justify-between">
                 <div class="flex items-center">
-                    <button onclick="changeBet(-10)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
-                    <input type="number" id="betPlinko" value="50" class="w-16 bg-transparent text-center font-bold outline-none">
-                    <button onclick="changeBet(10)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
+                    <button onclick="changeBet(-1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
+                    <input type="number" id="betPlinko" value="5000" class="w-20 bg-transparent text-center font-bold outline-none text-sm">
+                    <button onclick="changeBet(1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
                 </div>
-                <button id="btnDropPlinko" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold uppercase shadow-lg transition">Бросить</button>
-            </div>
-        </div>
-
-        <!-- ================= РУЛЕТКА ================= -->
-        <div id="viewRoulette" class="hidden w-full flex flex-col items-center">
-            <h2 class="title-font text-2xl mb-4 text-green-400 mt-4">РУЛЕТКА</h2>
-            <div class="relative w-[280px] h-[280px] rounded-full border-4 border-yellow-600 shadow-[0_0_20px_rgba(0,0,0,0.8)] overflow-hidden mb-6">
-                <canvas id="rouletteCanvas" width="280" height="280" class="absolute top-0 left-0 transition-transform duration-[4000ms] cubic-bezier(0.2, 0.8, 0.1, 1)"></canvas>
-                <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-4 h-6 bg-white z-20" style="clip-path: polygon(50% 100%, 0 0, 100% 0);"></div>
-            </div>
-            <div class="w-full bg-slate-800 p-4 rounded-xl max-w-[320px]">
-                <div class="flex justify-center items-center mb-4">
-                    <button onclick="changeBet(-10)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
-                    <input type="number" id="betRoulette" value="50" class="w-16 bg-transparent text-center font-bold outline-none">
-                    <button onclick="changeBet(10)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
-                </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="spinRoulette('red')" class="bg-red-600 hover:bg-red-500 py-3 rounded-lg font-bold shadow-lg transition">КРАСНОЕ<br><span class="text-xs font-normal">x2</span></button>
-                    <button onclick="spinRoulette('green')" class="bg-green-600 hover:bg-green-500 py-3 rounded-lg font-bold shadow-lg transition">ЗЕЛЕНОЕ<br><span class="text-xs font-normal">x14</span></button>
-                    <button onclick="spinRoulette('black')" class="bg-gray-900 hover:bg-gray-800 py-3 rounded-lg font-bold shadow-lg border border-gray-600 transition">ЧЕРНОЕ<br><span class="text-xs font-normal">x2</span></button>
-                </div>
+                <button onclick="dropPlinkoBall()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg font-bold uppercase shadow-lg transition active:scale-95 text-sm">Бросить</button>
             </div>
         </div>
 
         <!-- ================= БЛЭКДЖЕК ================= -->
-        <div id="viewBlackjack" class="hidden w-full flex flex-col items-center w-full max-w-sm mt-4">
+        <div id="viewBlackjack" class="hidden w-full flex flex-col items-center max-w-sm mt-4">
             <h2 class="title-font text-2xl mb-4 text-slate-200">BLACKJACK</h2>
             <div class="w-full bg-green-900/40 p-4 rounded-2xl border border-green-800 min-h-[300px] flex flex-col justify-between mb-4">
                 <div class="mb-4">
@@ -252,9 +313,9 @@
             </div>
             <div id="bjBetControls" class="w-full flex items-center justify-between bg-slate-800 p-3 rounded-xl mb-2">
                 <div class="flex items-center">
-                    <button onclick="changeBet(-10)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
-                    <input type="number" id="betBj" value="50" class="w-16 bg-transparent text-center font-bold outline-none">
-                    <button onclick="changeBet(10)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
+                    <button onclick="changeBet(-1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">-</button>
+                    <input type="number" id="betBj" value="10000" class="w-20 bg-transparent text-center font-bold outline-none text-sm">
+                    <button onclick="changeBet(1000)" class="w-8 h-8 bg-slate-700 rounded font-bold">+</button>
                 </div>
                 <button onclick="startBj()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold uppercase shadow-lg transition">Раздать</button>
             </div>
@@ -267,26 +328,174 @@
 
     </div>
 
-    <!-- МОДАЛКА -->
+    <!-- МОДАЛКА ВЫПАДЕНИЯ ПОКЕМОН-КАРТЫ -->
+    <div id="cardDropModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/90 hidden opacity-0 transition-opacity duration-300 p-4">
+        <div class="flex flex-col items-center max-w-sm w-full transform scale-95 transition-transform duration-300">
+            <h3 class="title-font text-2xl text-yellow-400 mb-2 filter drop-shadow">НОВАЯ ПОКЕМОН-КАРТА!</h3>
+            
+            <div id="droppedCardContainer" class="w-64 h-96 my-2"></div>
+
+            <button onclick="closeCardModal()" class="mt-4 px-8 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black rounded-full uppercase shadow-xl hover:scale-105 transition">Забрать в коллекцию</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ОБЫЧНОГО ВЫИГРЫША -->
     <div id="winModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black/90 hidden opacity-0 transition-opacity duration-300">
         <div class="bg-gradient-to-b from-slate-900 to-black p-8 rounded-3xl border-4 border-yellow-500 text-center max-w-sm w-full transform scale-95 transition-transform duration-300 mx-4">
             <h2 id="winTitle" class="title-font text-4xl mb-2 text-yellow-400">ПОБЕДА!</h2>
-            <p id="winAmount" class="text-5xl font-black text-green-400 mb-8 font-mono">+100 ₽</p>
+            <p id="winAmount" class="text-4xl font-black text-green-400 mb-8 font-mono">+100 $</p>
             <button onclick="closeWinModal()" class="px-8 py-4 bg-gradient-to-b from-yellow-400 to-yellow-600 text-black font-black rounded-full uppercase w-full shadow-lg hover:scale-105 transition">Отлично</button>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         /* ================= ГЛОБАЛЬНЫЕ ================= */
-        let BALANCE = 1000;
+        let BALANCE = 500;
+        let INVENTORY = [];
         let currentGame = 'viewMenu';
+        let currentUser = null;
+        let db = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'casino-abata';
+
+        /* 20 ПЕРСОНАЖЕЙ ВАЙФУ С ПРЯМЫМИ ССЫЛКАМИ И ХАРАКТЕРИСТИКАМИ КАРТОЧЕК */
+        const WAIFUS = [
+            { id: 'w1', name: 'Мейшо Дото', title: 'Девочка-лошадка', hp: '180', attack: '210', image: 'https://cdn.donmai.us/original/79/a8/79a8949b54afd26d495e1186697dd42a.png', rarity: '★ SR' },
+            { id: 'w2', name: 'Марин Китагава', title: 'Эта фарфоровая кукла', hp: '220', attack: '250', image: 'https://img10.joyreactor.cc/pics/post/Anime-%D1%84%D1%8D%D0%BD%D0%B4%D0%BE%D0%BC%D1%8B-Sono-Bisque-Doll-wa-Koi-wo-Suru-7854927.jpeg', rarity: '★★ SSR' },
+            { id: 'w3', name: 'Макима', title: 'Охотница на демонов', hp: '300', attack: '350', image: 'https://image.jannyai.com/bot-avatars/kxzFVkWZclGRu0rI-P4zg.webp', rarity: '★★★ UR' },
+            { id: 'w4', name: 'Йоруичи Шихоуи', title: 'Богиня Скорости', hp: '280', attack: '320', image: 'https://i.pinimg.com/originals/2f/84/f9/2f84f9e5dca1b971cb9e00e03039e9ee.jpg', rarity: '★★★ UR' },
+            { id: 'w5', name: 'Анко Угиуши', title: 'Песнь ночных сов', hp: '190', attack: '200', image: 'https://i.pinimg.com/originals/cd/59/2f/cd592f76826291fce75b5b8d03ac8ba5.jpg', rarity: '★ SR' },
+            { id: 'w6', name: 'Маки Зенин', title: 'Маг небесной проклятости', hp: '270', attack: '310', image: 'https://avatars.mds.yandex.net/i?id=e9981625fddba3b5942aa7ffbc0c797c_l-5215706-images-thumbs&n=13', rarity: '★★ SSR' },
+            { id: 'w7', name: 'Миа Хаймия', title: 'Школьный идол', hp: '160', attack: '170', image: 'https://i.pinimg.com/736x/94/5d/74/945d740d37223a78dd93efca57186dfa.jpg', rarity: '★ R' },
+            { id: 'w8', name: 'Алиса Куджо', title: 'Аля иногда кокетничает', hp: '230', attack: '240', image: 'https://cdn.donmai.us/original/ac/cf/accff3febbabf851705e0b6212e1bf13.jpg', rarity: '★★ SSR' },
+            { id: 'w9', name: 'Вагури', title: 'Цветок расцветает с достоинством', hp: '200', attack: '190', image: 'https://i.ytimg.com/vi/7izmvtFS3Hg/oardefault.jpg', rarity: '★ SR' },
+            { id: 'w10', name: 'Нами', title: 'Кошачий вор', hp: '210', attack: '260', image: 'https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/221050dd-3274-4690-959b-8c813f6f042f/dljypf6-01e7ad60-fe9a-4e00-9f1f-ba195181bf2e.png/v1/fill/w_773,h_1033/8k_one_piece___nami_s_feet_by_tawfikafeet_dljypf6-pre.png', rarity: '★★ SSR' },
+            { id: 'w11', name: 'Микаса Аккерман', title: 'Защитница Эрена', hp: '290', attack: '330', image: 'https://cdn.crushon.ai/images/206c7276-8119-11ee-a821-26608e367147/3fef51b3-744d-4267-b7af-1c75027d4a63', rarity: '★★★ UR' },
+            { id: 'w12', name: 'Хината Хьюга', title: 'Застенчивая куноичи', hp: '240', attack: '230', image: 'https://avatars.mds.yandex.net/i?id=35ac24d48c67b11fd44d21d6ac472401_l-5232177-images-thumbs&n=33&w=727&h=1080', rarity: '★★ SSR' },
+            { id: 'w13', name: 'Рукия Кучики', title: 'Проводник душ', hp: '250', attack: '270', image: 'https://cdn.donmai.us/sample/c5/76/__kuchiki_rukia_bleach_drawn_by_rakusakugk__sample-c57656c7338baae557c66e53a8a3bc50.jpg', rarity: '★★ SSR' },
+            { id: 'w14', name: 'Фрирен', title: 'Эльфийский маг', hp: '310', attack: '360', image: 'https://avatars.mds.yandex.net/i?id=727b7648cb4a513fd1dcf8d9d516cd7d_l-5278533-images-thumbs&n=13', rarity: '★★★ UR' },
+            { id: 'w15', name: 'Нино Накано', title: 'Вторая сестренка', hp: '210', attack: '220', image: 'https://cdn.aibooru.download/original/b5/15/b5158b0101f59c16fd4e838c23dc33a3.jpg', rarity: '★ SR' },
+            { id: 'w16', name: 'Фурина', title: 'Гидро Архонт', hp: '290', attack: '340', image: 'https://img10.joyreactor.cc/pics/post/8607949', rarity: '★★★ UR' },
+            { id: 'w17', name: 'Кирара Хоши', title: 'Доставка Некомата', hp: '220', attack: '230', image: 'https://ella.janitorai.com/avatars/DEphGu81nFvImLILFkklN.webp', rarity: '★ SR' },
+            { id: 'w18', name: 'Хикари и Нозоми', title: 'Дуэт Синкансэнов', hp: '260', attack: '280', image: 'https://avatars.mds.yandex.net/i?id=0c17bc4718be024f5ec568ce909723a4_l-4769507-images-thumbs&n=33&w=758&h=1080', rarity: '★★ SSR' },
+            { id: 'w19', name: 'Агнес Тахион', title: 'Ученый лошадка', hp: '230', attack: '250', image: 'https://avatars.mds.yandex.net/i?id=099b836b52af25675e6afe161067a4b0_l-10754966-images-thumbs&n=33&w=729&h=1080', rarity: '★ SR' },
+            { id: 'w20', name: 'Шинобу Кочо', title: 'Столп Насекомого', hp: '270', attack: '300', image: 'https://cdn.polyspeak.ai/speakmaster/c30d22a377e32d1dc21aadf066996854.webp', rarity: '★★★ UR' }
+        ];
+
+        /* FIREBASE INIT */
+        async function initFirebase() {
+            try {
+                const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+                if (!firebaseConfigStr) {
+                    hideLoading();
+                    return;
+                }
+
+                const app = initializeApp(JSON.parse(firebaseConfigStr));
+                const auth = getAuth(app);
+                db = getFirestore(app);
+
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+
+                onAuthStateChanged(auth, async (u) => {
+                    currentUser = u;
+                    if (currentUser) {
+                        await loadProgress();
+                    } else {
+                        hideLoading();
+                    }
+                });
+
+                await initAuth();
+            } catch (e) {
+                console.error("Firebase error", e);
+                hideLoading();
+            }
+        }
+        initFirebase();
+
+        async function loadProgress() {
+            if (!currentUser || !db) return hideLoading();
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'progress');
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if(data.balance !== undefined) BALANCE = data.balance;
+                    if(data.inventory) INVENTORY = data.inventory;
+                }
+                updateBalanceUI();
+                renderCollection();
+                hideLoading();
+            } catch (e) {
+                console.error(e);
+                hideLoading();
+            }
+        }
+
+        let saveTimeout = null;
+        function scheduleSave() {
+            if(!currentUser || !db) return;
+            if(saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'progress');
+                    await setDoc(docRef, { balance: BALANCE, inventory: INVENTORY }, { merge: true });
+                } catch(e) { console.error("Save error", e); }
+            }, 1000);
+        }
+
+        function hideLoading() {
+            const l = document.getElementById('loadingOverlay');
+            if(l) {
+                l.style.opacity = '0';
+                setTimeout(() => l.style.display = 'none', 500);
+            }
+        }
+
+        /* UI Helpers */
+        function showToast(msg, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl font-bold text-white shadow-2xl z-[100] transition-all duration-300 text-center min-w-[280px] ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            toast.innerText = msg;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translate(-50%, -20px)';
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translate(-50%, 0)';
+            }, 10);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, -20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
 
         function updateBalance(amount) {
             BALANCE += amount;
-            document.getElementById('globalBalance').innerText = `${BALANCE} ₽`;
+            updateBalanceUI();
+            scheduleSave();
         }
 
-        function switchView(viewId) {
+        function updateBalanceUI() {
+            document.getElementById('globalBalance').innerText = `${BALANCE.toLocaleString('ru-RU')} $`;
+            document.getElementById('collectionCounter').innerText = `${INVENTORY.length}/20`;
+            document.getElementById('collectionSubCounter').innerText = `${INVENTORY.length} / 20`;
+        }
+
+        window.switchView = function(viewId) {
             playTone(800, 'sine', 0.1);
             document.getElementById(currentGame).classList.add('hidden');
             document.getElementById(viewId).classList.remove('hidden');
@@ -296,70 +505,208 @@
             if (viewId === 'viewMenu') {
                 btnBack.classList.add('hidden');
                 document.getElementById('topTitle').innerText = 'КАЗИНО АБАТА';
-                backToCategories();
+                window.backToCategories();
             } else {
                 btnBack.classList.remove('hidden');
-                let titles = { 'viewSlots': 'SLOTS 777', 'viewPlinko': 'PLINKO', 'viewRoulette': 'РУЛЕТКА', 'viewBlackjack': 'БЛЭКДЖЕК', 'viewWork': 'АКАДЕМИЯ АБАТА' };
-                document.getElementById('topTitle').innerText = titles[viewId];
+                let titles = { 'viewSlots': 'SLOTS 777', 'viewPlinko': 'PLINKO', 'viewBlackjack': 'БЛЭКДЖЕК', 'viewWork': 'АКАДЕМИЯ', 'viewGacha': 'ДЖЕКПОТ ВАЙФУ', 'viewCollection': 'КОЛЛЕКЦИЯ' };
+                document.getElementById('topTitle').innerText = titles[viewId] || 'АБАТА';
+                if(viewId === 'viewCollection') renderCollection();
+                if(viewId === 'viewGacha') initGachaReel();
             }
         }
-        
-        document.getElementById('btnBack').addEventListener('click', () => {
-            if(!isSpinningSlots && !isPlinkoDropping && !isRouletteSpinning && !isBjPlaying) switchView('viewMenu');
-        });
 
         function getActiveBetInput() {
             if(currentGame === 'viewSlots') return document.getElementById('betSlots');
             if(currentGame === 'viewPlinko') return document.getElementById('betPlinko');
-            if(currentGame === 'viewRoulette') return document.getElementById('betRoulette');
             if(currentGame === 'viewBlackjack') return document.getElementById('betBj');
             return null;
         }
 
-        function changeBet(delta) {
+        window.changeBet = function(delta) {
             const input = getActiveBetInput();
             if(!input) return;
             playTone(1200, 'square', 0.05, 0.05);
-            let val = parseInt(input.value) || 10;
+            let val = parseInt(input.value) || 1000;
             val += delta;
-            if(val < 10) val = 10;
-            if(val > BALANCE) val = Math.max(BALANCE, 10);
+            if(val < 1000) val = 1000;
+            if(val > Math.max(BALANCE, 1000)) val = Math.max(BALANCE, 1000);
             input.value = val;
+        }
+
+        /* ПОКЕМОН-КАРТА ГЕНЕРАТОР HTML */
+        function createPokeCardHTML(item, isLocked = false) {
+            if(isLocked) {
+                return `
+                    <div class="poke-card poke-card-locked h-72">
+                        <div class="poke-card-inner justify-center items-center">
+                            <span class="text-4xl mb-2">❓</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Не открыто</span>
+                        </div>
+                    </div>
+                `;
+            }
+            return `
+                <div class="poke-card h-80">
+                    <div class="poke-card-inner">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-black text-amber-300 tracking-wider">${item.rarity}</span>
+                            <span class="text-[10px] font-mono text-red-400 font-bold">HP ${item.hp}</span>
+                        </div>
+                        <div class="w-full h-44 rounded-lg overflow-hidden border-2 border-amber-300/80 my-1 bg-black relative">
+                            <img src="${item.image}" alt="${item.name}" loading="lazy" class="w-full h-full object-cover">
+                            <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                                <p class="text-[9px] text-amber-200 font-medium truncate">${item.title}</p>
+                            </div>
+                        </div>
+                        <h4 class="font-black text-white text-xs text-center my-1 filter drop-shadow">${item.name}</h4>
+                        <div class="mt-auto bg-indigo-950/80 rounded p-1.5 border border-indigo-500/40 text-[9px] flex justify-between items-center text-gray-300">
+                            <span>⚔️ Атака</span>
+                            <span class="font-mono text-yellow-300 font-bold">${item.attack}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* ОТРИСОВКА КОЛЛЕКЦИИ */
+        function renderCollection() {
+            const grid = document.getElementById('collectionGrid');
+            grid.innerHTML = '';
+            WAIFUS.forEach(item => {
+                const owned = INVENTORY.includes(item.id);
+                grid.innerHTML += createPokeCardHTML(item, !owned);
+            });
+            updateBalanceUI();
+        }
+
+        /* ================= ДЖЕКПОТ (ГАЧА) ЛОГИКА ================= */
+        let isGachaSpinning = false;
+
+        function initGachaReel() {
+            const reel = document.getElementById('gachaReel');
+            reel.style.transition = 'none';
+            reel.style.transform = 'translateX(0px)';
+            
+            let html = '';
+            for(let i = 0; i < 10; i++) {
+                const w = WAIFUS[Math.floor(Math.random() * WAIFUS.length)];
+                html += `
+                    <div class="w-28 h-36 bg-slate-900 border border-pink-500/40 rounded-lg p-1 shrink-0 flex flex-col items-center justify-between">
+                        <img src="${w.image}" class="w-full h-24 object-cover rounded">
+                        <span class="text-[10px] font-bold text-white truncate w-full text-center">${w.name}</span>
+                    </div>
+                `;
+            }
+            reel.innerHTML = html;
+        }
+
+        window.spinGacha = function() {
+            if(isGachaSpinning) return;
+            if(BALANCE < 1000000) {
+                showToast("Недостаточно средств! Нужно 1 000 000 $", true);
+                return;
+            }
+
+            updateBalance(-1000000);
+            isGachaSpinning = true;
+            document.getElementById('btnSpinGacha').disabled = true;
+
+            const winningWaifu = WAIFUS[Math.floor(Math.random() * WAIFUS.length)];
+            
+            const reel = document.getElementById('gachaReel');
+            reel.style.transition = 'none';
+            reel.style.transform = 'translateX(0px)';
+
+            let html = '';
+            const TOTAL_ITEMS = 50;
+            const WIN_INDEX = 42;
+
+            for(let i = 0; i < TOTAL_ITEMS; i++) {
+                let w = (i === WIN_INDEX) ? winningWaifu : WAIFUS[Math.floor(Math.random() * WAIFUS.length)];
+                html += `
+                    <div class="w-28 h-36 bg-slate-900 border border-pink-500/40 rounded-lg p-1 shrink-0 flex flex-col items-center justify-between shadow-lg">
+                        <img src="${w.image}" class="w-full h-24 object-cover rounded">
+                        <span class="text-[10px] font-bold text-white truncate w-full text-center">${w.name}</span>
+                    </div>
+                `;
+            }
+            reel.innerHTML = html;
+
+            const itemWidth = 112 + 12;
+            const targetOffset = (WIN_INDEX * itemWidth) - (document.querySelector('.w-full.h-40').offsetWidth / 2) + (itemWidth / 2);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    reel.style.transition = 'transform 5s cubic-bezier(0.15, 0.9, 0.2, 1)';
+                    reel.style.transform = `translateX(-${targetOffset}px)`;
+                    playTone(300, 'sine', 0.5);
+                });
+            });
+
+            setTimeout(() => {
+                isGachaSpinning = false;
+                document.getElementById('btnSpinGacha').disabled = false;
+                
+                if(!INVENTORY.includes(winningWaifu.id)) {
+                    INVENTORY.push(winningWaifu.id);
+                    scheduleSave();
+                }
+                
+                showCardDropModal(winningWaifu);
+            }, 5300);
+        };
+
+        function showCardDropModal(waifu) {
+            const modal = document.getElementById('cardDropModal');
+            const container = document.getElementById('droppedCardContainer');
+            container.innerHTML = createPokeCardHTML(waifu, false);
+            
+            playWinSound(true);
+            createExplosion(window.innerWidth/2, window.innerHeight/2, '#facc15', 80);
+
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        window.closeCardModal = function() {
+            const modal = document.getElementById('cardDropModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
         /* ================= АКАДЕМИЯ АБАТА ================= */
         const QUIZ = {
             math: [
-                {q: "Сколько будет 2 + 2 * 2?", a: "6", reward: 50},
-                {q: "Корень из 144?", a: "12", reward: 60},
-                {q: "Чему равна площадь квадрата со стороной 5?", a: "25", reward: 50},
-                {q: "100 разделить на 0.5?", a: "200", reward: 80}
+                {q: "Сколько будет 2 + 2 * 2?", a: "6", reward: 100000},
+                {q: "Корень из 144?", a: "12", reward: 120000},
+                {q: "Чему равна площадь квадрата со стороной 5?", a: "25", reward: 100000},
+                {q: "100 разделить на 0.5?", a: "200", reward: 150000}
             ],
             it: [
-                {q: "Сколько бит в одном байте?", a: "8", reward: 50},
-                {q: "Как называется основной язык стилей веб-страниц? (аббревиатура)", a: "css", reward: 60},
-                {q: "HTML - это язык программирования? (да/нет)", a: "нет", reward: 40}
+                {q: "Сколько бит в одном байте?", a: "8", reward: 100000},
+                {q: "Как называется основной язык стилей веб-страниц? (аббревиатура)", a: "css", reward: 120000},
+                {q: "HTML - это язык программирования? (да/нет)", a: "нет", reward: 80000}
             ],
             biology: [
-                {q: "Сколько хромосом у здорового человека?", a: "46", reward: 80},
-                {q: "Какой газ растения поглощают при фотосинтезе?", a: "углекислый", reward: 70},
-                {q: "Самая большая кость в теле человека?", a: "бедренная", reward: 100}
+                {q: "Сколько хромосом у здорового человека?", a: "46", reward: 150000},
+                {q: "Какой газ растения поглощают при фотосинтезе?", a: "углекислый", reward: 130000},
+                {q: "Самая большая кость в теле человека?", a: "бедренная", reward: 200000}
             ],
             physics: [
-                {q: "В чем измеряется сила тока? (слово)", a: "ампер", reward: 80},
-                {q: "Формула силы: F = m * ? (введите букву)", a: "a", reward: 60},
-                {q: "Скорость света в вакууме примерно равна ... тыс. км/с (число)", a: "300", reward: 100}
+                {q: "В чем измеряется сила тока? (слово)", a: "ампер", reward: 150000},
+                {q: "Формула силы: F = m * ? (введите букву)", a: "a", reward: 120000},
+                {q: "Скорость света в вакууме примерно равна ... тыс. км/с (число)", a: "300", reward: 200000}
             ],
             english: [
-                {q: "Переведите на английский: 'Яблоко'", a: "apple", reward: 40},
-                {q: "Прошедшее время глагола 'go'?", a: "went", reward: 50},
-                {q: "Переведите на русский: 'Always'", a: "всегда", reward: 40}
+                {q: "Переведите на английский: 'Яблоко'", a: "apple", reward: 80000},
+                {q: "Прошедшее время глагола 'go'?", a: "went", reward: 100000},
+                {q: "Переведите на русский: 'Always'", a: "всегда", reward: 80000}
             ]
         };
 
         let currentQuestion = null;
 
-        function loadQuestion(subject) {
+        window.loadQuestion = function(subject) {
             const questions = QUIZ[subject];
             currentQuestion = questions[Math.floor(Math.random() * questions.length)];
             
@@ -368,19 +715,19 @@
             
             const subjNames = { math: 'Математика', it: 'Информатика', biology: 'Биология', physics: 'Физика', english: 'Английский' };
             document.getElementById('qSubject').innerText = subjNames[subject];
-            document.getElementById('qReward').innerText = `Награда: +${currentQuestion.reward} ₽`;
+            document.getElementById('qReward').innerText = `Награда: +${currentQuestion.reward.toLocaleString('ru-RU')} $`;
             document.getElementById('qText').innerText = currentQuestion.q;
             document.getElementById('qInput').value = '';
             document.getElementById('qFeedback').innerText = '';
         }
 
-        function backToCategories() {
+        window.backToCategories = function() {
             document.getElementById('workCategories').classList.remove('hidden');
             document.getElementById('questionBlock').classList.add('hidden');
             currentQuestion = null;
         }
 
-        function checkAnswer() {
+        window.checkAnswer = function() {
             if(!currentQuestion) return;
             const inputVal = document.getElementById('qInput').value.trim().toLowerCase();
             const feedback = document.getElementById('qFeedback');
@@ -396,7 +743,7 @@
                 createExplosion(window.innerWidth/2, window.innerHeight/2, '#10b981', 20);
                 
                 setTimeout(() => {
-                    backToCategories();
+                    window.backToCategories();
                 }, 1500);
             } else {
                 playTone(200, 'sawtooth', 0.3);
@@ -461,32 +808,26 @@
         function showWinModal(amount, titleText = "ПОБЕДА!") {
             const modal = document.getElementById('winModal');
             document.getElementById('winTitle').innerText = titleText;
-            document.getElementById('winAmount').innerText = `+${amount} ₽`;
+            document.getElementById('winAmount').innerText = `+${amount.toLocaleString('ru-RU')} $`;
             
-            playWinSound(amount >= 200);
-            if(amount >= 100) {
-                for(let i=0; i<5; i++) {
-                    setTimeout(() => createExplosion(window.innerWidth*Math.random(), window.innerHeight/2*Math.random(), `hsl(${Math.random()*360},100%,50%)`, 100), i*300);
-                }
-            }
-
+            playWinSound(amount >= 200000);
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.remove('opacity-0'), 10);
         }
-        function closeWinModal() {
+        window.closeWinModal = function() {
             const modal = document.getElementById('winModal');
             modal.classList.add('opacity-0');
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
-        /* ================= 1. СЛОТЫ (ИДЕАЛЬНАЯ АНИМАЦИЯ GPU) ================= */
+        /* ================= СЛОТЫ ================= */
         const ICONS = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
         const OUTCOMES = [
-            { type: 'loss', weight: 60, mult: 0 },
+            { type: 'loss', weight: 65, mult: 0 },
             { type: 'cherry2', weight: 20, mult: 1, target: ['🍒', '🍒', 'any'] },
-            { type: 'cherry3', weight: 10, mult: 3, target: ['🍒', '🍒', '🍒'] },
+            { type: 'cherry3', weight: 8, mult: 3, target: ['🍒', '🍒', '🍒'] },
             { type: 'lemon3', weight: 5, mult: 5, target: ['🍋', '🍋', '🍋'] },
-            { type: 'diamond3', weight: 1.5, mult: 25, target: ['💎', '💎', '💎'] },
+            { type: 'diamond3', weight: 1.8, mult: 25, target: ['💎', '💎', '💎'] },
             { type: 'seven3', weight: 0.2, mult: 100, target: ['7️⃣', '7️⃣', '7️⃣'] }
         ];
         
@@ -494,22 +835,22 @@
         let slotTimeouts = [];
         let currentSlotOutcome = null;
         let currentSlotBet = 0;
-        const TOTAL_SYMBOLS = 40; // Длинная лента для красивого вращения
+        const TOTAL_SYMBOLS = 40; 
         const strips = [document.getElementById('reel1'), document.getElementById('reel2'), document.getElementById('reel3')];
         const btnSkip = document.getElementById('btnSkip');
+        const btnSpin = document.getElementById('btnSpinSlot');
 
         strips.forEach(s => s.innerHTML = `<div class="symbol">🍒</div>`);
 
-        function pullLever() {
+        window.pullLever = function() {
             if (isSpinningSlots) return;
             const betInput = document.getElementById('betSlots');
             let bet = parseInt(betInput.value);
-            if(isNaN(bet) || bet < 10) bet = 10;
-            if (bet > BALANCE) bet = Math.max(BALANCE, 10);
+            if(isNaN(bet) || bet < 1000) bet = 1000;
+            if (bet > Math.max(BALANCE, 1000)) bet = Math.max(BALANCE, 1000);
             
             if (BALANCE < bet) {
-                alert("Недостаточно средств! Заработайте деньги в Академии Абата.");
-                switchView('viewWork');
+                showToast("Недостаточно средств!", true);
                 return;
             }
 
@@ -518,12 +859,11 @@
             isSpinningSlots = true;
             betInput.disabled = true;
             
+            btnSpin.classList.add('opacity-50', 'cursor-not-allowed');
             btnSkip.disabled = false;
             btnSkip.classList.remove('opacity-50', 'cursor-not-allowed');
 
             playTone(150, 'sawtooth', 0.5, 0.2); 
-            document.getElementById('leverTrigger').classList.add('lever-pulled');
-            setTimeout(() => document.getElementById('leverTrigger').classList.remove('lever-pulled'), 300);
 
             let totalWeight = OUTCOMES.reduce((sum, item) => sum + item.weight, 0);
             let random = Math.random() * totalWeight;
@@ -542,7 +882,6 @@
                 if(finalSymbols[2] === '🍒') finalSymbols[2] = '🍋';
             }
             
-            // 1. Очистка и установка без анимации (translate3d для GPU)
             strips.forEach((strip, index) => {
                 strip.style.transition = 'none';
                 strip.style.transform = `translate3d(0, 0px, 0)`;
@@ -555,25 +894,20 @@
                 strip.innerHTML = html;
             });
 
-            // 2. Двойной requestAnimationFrame гарантирует, что браузер применил HTML и стартовую позицию
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     strips.forEach((strip, index) => {
                         const duration = 2 + (index * 0.5); 
-                        // Плавный ease-out (быстрый старт, медленный конец)
                         strip.style.transition = `transform ${duration}s cubic-bezier(0.1, 0.9, 0.2, 1)`;
-                        // Двигаем вверх до предпоследнего элемента
                         strip.style.transform = `translate3d(0, -${(TOTAL_SYMBOLS - 1) * 100}px, 0)`;
-                        
                         slotTimeouts.push(setTimeout(() => playTone(300 + index*100, 'square', 0.1, 0.1), duration*1000));
                     });
-
                     slotTimeouts.push(setTimeout(finishSlotSpin, 3100));
                 });
             });
         }
 
-        function skipSlotSpin() {
+        window.skipSlotSpin = function() {
             if(!isSpinningSlots) return;
             slotTimeouts.forEach(t => clearTimeout(t));
             slotTimeouts = [];
@@ -598,8 +932,8 @@
             
             isSpinningSlots = false;
             document.getElementById('betSlots').disabled = false;
+            btnSpin.classList.remove('opacity-50', 'cursor-not-allowed');
             
-            // Очистка DOM (оставляем только финальный символ для экономии памяти)
             strips.forEach(strip => {
                 const lastSymbol = strip.lastChild.innerText;
                 strip.style.transition = 'none';
@@ -608,18 +942,15 @@
             });
         }
 
-        document.getElementById('leverTrigger').addEventListener('mousedown', pullLever);
-        document.getElementById('leverTrigger').addEventListener('touchstart', (e) => { e.preventDefault(); pullLever(); }, {passive: false});
-        btnSkip.addEventListener('click', skipSlotSpin);
-
-
-        /* ================= 2. ПЛИНКО ================= */
+        /* ================= PLINKO ================= */
         const plinkoCanvas = document.getElementById('plinkoCanvas');
         const pCtx = plinkoCanvas.getContext('2d');
         const plinkoRows = 8;
         const pRadius = 6;
-        const multipliers = [0, 0.5, 1.5, 3, 10, 3, 1.5, 0.5, 0];
-        let isPlinkoDropping = false;
+        const multipliers = [0, 0.1, 0.3, 0.8, 3, 0.8, 0.3, 0.1, 0];
+        
+        let plinkoBalls = [];
+        let plinkoAnimId = null;
         
         function drawPlinkoBoard() {
             pCtx.clearRect(0,0, plinkoCanvas.width, plinkoCanvas.height);
@@ -636,20 +967,60 @@
         }
         drawPlinkoBoard();
 
-        document.getElementById('btnDropPlinko').addEventListener('click', () => {
-            if(isPlinkoDropping) return;
+        function plinkoLoop() {
+            drawPlinkoBoard();
+            let active = false;
+
+            for (let i = plinkoBalls.length - 1; i >= 0; i--) {
+                let b = plinkoBalls[i];
+                active = true;
+
+                pCtx.fillStyle = '#38bdf8';
+                pCtx.beginPath(); pCtx.arc(b.ballX, b.ballY, pRadius, 0, Math.PI*2); pCtx.fill();
+
+                if (b.step < b.path.length - 1) {
+                    let dx = b.path[b.step+1].x - b.ballX;
+                    let dy = b.path[b.step+1].y - b.ballY;
+                    b.ballX += dx * 0.15;
+                    b.ballY += dy * 0.15;
+
+                    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
+                        b.step++;
+                        if(Math.random() > 0.5) playTone(400 + Math.random()*200, 'sine', 0.05);
+                    }
+                } else {
+                    let win = Math.floor(b.bet * multipliers[b.currentBin]);
+                    if (win > 0) {
+                        updateBalance(win);
+                        if (multipliers[b.currentBin] >= 3) showWinModal(win, `x${multipliers[b.currentBin]}`);
+                        else {
+                            createExplosion(plinkoCanvas.offsetLeft + b.ballX, window.innerHeight/2, '#38bdf8', 15);
+                        }
+                    }
+                    plinkoBalls.splice(i, 1);
+                }
+            }
+
+            if (active) {
+                plinkoAnimId = requestAnimationFrame(plinkoLoop);
+            } else {
+                plinkoAnimId = null;
+                drawPlinkoBoard(); 
+            }
+        }
+
+        window.dropPlinkoBall = function() {
             const input = document.getElementById('betPlinko');
             let bet = parseInt(input.value);
-            if(isNaN(bet) || bet < 10) bet = 10;
-            if(bet > BALANCE) bet = Math.max(BALANCE, 10);
+            if(isNaN(bet) || bet < 1000) bet = 1000;
+            if(bet > BALANCE) bet = Math.max(BALANCE, 1000);
             
             if(BALANCE < bet) {
-                alert("Недостаточно денег. Перейдите в Академию Абата.");
+                showToast("Недостаточно денег ($).", true);
                 return;
             }
 
             updateBalance(-bet);
-            isPlinkoDropping = true;
             
             let path = [];
             let x = plinkoCanvas.width/2;
@@ -658,8 +1029,9 @@
             
             let currentBin = 0; 
             for(let r=0; r<plinkoRows; r++) {
-                let dir = Math.random() > 0.5 ? 1 : -1;
-                if(r===0) dir = Math.random() > 0.5 ? 1 : -1; 
+                let bias = (x > plinkoCanvas.width/2) ? -0.15 : 0.15;
+                let dir = (Math.random() + bias) > 0.5 ? 1 : -1;
+
                 x += dir * 17.5;
                 y += 40;
                 if(dir === 1) currentBin++;
@@ -669,111 +1041,21 @@
             y += 20;
             path.push({x, y});
 
-            let step = 0;
-            let ballX = path[0].x, ballY = path[0].y;
-            
-            function anim() {
-                drawPlinkoBoard();
-                pCtx.fillStyle = '#38bdf8';
-                pCtx.beginPath(); pCtx.arc(ballX, ballY, pRadius, 0, Math.PI*2); pCtx.fill();
-                
-                if(step < path.length - 1) {
-                    let dx = path[step+1].x - ballX;
-                    let dy = path[step+1].y - ballY;
-                    ballX += dx * 0.15;
-                    ballY += dy * 0.15;
-                    
-                    if(Math.abs(dx) < 2 && Math.abs(dy) < 2) {
-                        step++;
-                        playTone(400 + Math.random()*200, 'sine', 0.05);
-                    }
-                    requestAnimationFrame(anim);
-                } else {
-                    isPlinkoDropping = false;
-                    let win = bet * multipliers[currentBin];
-                    if(win > 0) {
-                        updateBalance(win);
-                        if(multipliers[currentBin] >= 3) showWinModal(win, `x${multipliers[currentBin]}`);
-                        else {
-                            createExplosion(window.innerWidth/2, window.innerHeight/2, '#38bdf8', 30);
-                            playWinSound(false);
-                        }
-                    }
-                }
+            plinkoBalls.push({
+                bet: bet,
+                currentBin: currentBin,
+                path: path,
+                step: 0,
+                ballX: path[0].x,
+                ballY: path[0].y
+            });
+
+            if(!plinkoAnimId) {
+                plinkoAnimId = requestAnimationFrame(plinkoLoop);
             }
-            anim();
-        });
+        };
 
-
-        /* ================= 3. РУЛЕТКА ================= */
-        const rCanvas = document.getElementById('rouletteCanvas');
-        const rCtx = rCanvas.getContext('2d');
-        const rNumbers = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
-        let isRouletteSpinning = false;
-        let rRotation = 0;
-
-        function drawRoulette() {
-            const cx = 140, cy = 140, radius = 135;
-            const slice = 2 * Math.PI / 37;
-            rCtx.clearRect(0,0, 280,280);
-            for(let i=0; i<37; i++) {
-                rCtx.beginPath();
-                rCtx.moveTo(cx, cy);
-                rCtx.arc(cx, cy, radius, i*slice - Math.PI/2, (i+1)*slice - Math.PI/2);
-                
-                let num = rNumbers[i];
-                if(num === 0) rCtx.fillStyle = '#16a34a'; 
-                else rCtx.fillStyle = (i%2 !== 0) ? '#dc2626' : '#111827'; 
-                rCtx.fill(); rCtx.stroke();
-                
-                rCtx.save();
-                rCtx.translate(cx, cy);
-                rCtx.rotate(i*slice + slice/2 - Math.PI/2);
-                rCtx.textAlign = "right"; rCtx.textBaseline = "middle";
-                rCtx.fillStyle = "white"; rCtx.font = "bold 12px sans-serif";
-                rCtx.fillText(num, radius - 10, 0);
-                rCtx.restore();
-            }
-            rCtx.beginPath(); rCtx.arc(cx, cy, 90, 0, Math.PI*2); rCtx.fillStyle = '#1f2937'; rCtx.fill();
-        }
-        drawRoulette();
-
-        function spinRoulette(betColor) {
-            if(isRouletteSpinning) return;
-            const input = document.getElementById('betRoulette');
-            let bet = parseInt(input.value);
-            if(isNaN(bet) || bet < 10) bet = 10;
-            if(bet > BALANCE) bet = Math.max(BALANCE, 10);
-            if(BALANCE < bet) return alert("Мало денег! Заработайте их в Академии Абата.");
-
-            updateBalance(-bet);
-            isRouletteSpinning = true;
-            
-            let winIndex = Math.floor(Math.random() * 37);
-            let winNum = rNumbers[winIndex];
-            
-            let actualColor = 'green';
-            if(winNum !== 0) actualColor = (winIndex%2 !== 0) ? 'red' : 'black';
-
-            const sliceDegree = 360 / 37;
-            const targetAngle = 360 - (winIndex * sliceDegree) - (sliceDegree/2);
-            rRotation += (360 * 5) + (targetAngle - (rRotation % 360));
-            
-            rCanvas.style.transform = `rotate(${rRotation}deg)`;
-            playTone(200, 'sawtooth', 0.5);
-
-            setTimeout(() => {
-                isRouletteSpinning = false;
-                if(betColor === actualColor) {
-                    let mult = (betColor === 'green') ? 14 : 2;
-                    let win = bet * mult;
-                    updateBalance(win);
-                    showWinModal(win, `ВЫПАЛ ${actualColor === 'red' ? 'КРАСНЫЙ' : actualColor==='black' ? 'ЧЕРНЫЙ' : 'ЗЕЛЕНЫЙ'}!`);
-                }
-            }, 4000);
-        }
-
-        /* ================= 4. БЛЭКДЖЕК ================= */
+        /* ================= БЛЭКДЖЕК ================= */
         let deck = [], playerHand = [], dealerHand = [];
         let bjBet = 0;
         let isBjPlaying = false;
@@ -812,13 +1094,13 @@
             });
         }
 
-        function startBj() {
+        window.startBj = function() {
             if(isBjPlaying) return;
             const input = document.getElementById('betBj');
             let bet = parseInt(input.value);
-            if(isNaN(bet) || bet < 10) bet = 10;
-            if(bet > BALANCE) bet = Math.max(BALANCE, 10);
-            if(BALANCE < bet) return alert("Мало денег! Отвечайте на вопросы в Академии Абата.");
+            if(isNaN(bet) || bet < 1000) bet = 1000;
+            if(bet > Math.max(BALANCE, 1000)) bet = Math.max(BALANCE, 1000);
+            if(BALANCE < bet) return showToast("Мало денег!", true);
 
             updateBalance(-bet);
             bjBet = bet;
@@ -848,7 +1130,7 @@
             }
         }
 
-        function hitBj() {
+        window.hitBj = function() {
             if(!isBjPlaying) return;
             playerHand.push(deck.pop());
             playTone(300, 'square', 0.1);
@@ -856,7 +1138,7 @@
             if(calculateHand(playerHand) > 21) endBj('Перебор! Вы проиграли', 0);
         }
 
-        function standBj() {
+        window.standBj = function() {
             if(!isBjPlaying) return;
             document.getElementById('bjActionControls').classList.add('hidden');
             updateBjUI(false);
