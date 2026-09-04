@@ -116,7 +116,7 @@
     <!-- ИНДИКАТОР ЗАГРУЗКИ (DB) -->
     <div id="loadingOverlay" class="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-black/85 transition-opacity duration-500">
         <div class="w-14 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-yellow-400 font-bold tracking-widest uppercase text-sm">Синхронизация аккаунта...</p>
+        <p class="text-yellow-400 font-bold tracking-widest uppercase text-sm">Синхронизация...</p>
     </div>
 
     <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ / РЕГИСТРАЦИИ -->
@@ -161,7 +161,7 @@
             <!-- КНОПКА АККАУНТА -->
             <button onclick="openAuthModal()" id="userBtn" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
                 <span>👤</span>
-                <span id="userBtnText" class="hidden sm:inline">Войти</span>
+                <span id="userBtnText" class="hidden sm:inline">Гость</span>
             </button>
         </div>
     </div>
@@ -258,7 +258,7 @@
             <div id="collectionGrid" class="grid grid-cols-2 gap-4 w-full"></div>
         </div>
 
-        <!-- ================= ЗАРАБОТОК ================= -->
+        <!-- ================= ЗАРАБОТОК (Пониженные награды) ================= -->
         <div id="viewWork" class="hidden w-full flex flex-col items-center">
             <h2 class="title-font text-2xl mb-2 mt-2 text-purple-400 text-center">АКАДЕМИЯ АБАТА</h2>
             <p class="text-xs text-gray-400 text-center mb-6">Выберите предмет. За правильный ответ вы получите деньги на баланс.</p>
@@ -418,25 +418,22 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithCustomToken, 
-            signInAnonymously, 
-            signInWithEmailAndPassword,
-            createUserWithEmailAndPassword,
-            signOut,
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         /* ================= ГЛОБАЛЬНЫЕ ================= */
         let BALANCE = 500;
         let INVENTORY = [];
         let currentGame = 'viewMenu';
+        
         let currentUser = null;
         let db = null;
         let auth = null;
-        let isAuthSignUpMode = false;
+        
+        // Кастомная система аккаунтов, работающая поверх базы данных
+        let loggedInAccount = null; 
+        window.isAuthSignUpMode = false;
+        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'casino-abata';
 
         /* 20 ПЕРСОНАЖЕЙ ВАЙФУ С ВАШИМИ ССЫЛКАМИ */
@@ -476,6 +473,7 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
+                // Всегда используем базовую анонимную авторизацию для доступа к БД
                 const initAuth = async () => {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
@@ -486,11 +484,9 @@
 
                 onAuthStateChanged(auth, async (u) => {
                     currentUser = u;
-                    if (currentUser) {
-                        updateUserUI();
-                        await loadProgress();
-                    } else {
-                        updateUserUI();
+                    if (currentUser && !loggedInAccount) {
+                        await loadGuestProgress(); // Грузим локальный прогресс гостя
+                    } else if(!currentUser) {
                         hideLoading();
                     }
                 });
@@ -503,7 +499,8 @@
         }
         initFirebase();
 
-        async function loadProgress() {
+        // Загрузка гостевого прогресса (привязанного к браузеру)
+        async function loadGuestProgress() {
             if (!currentUser || !db) return hideLoading();
             try {
                 const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'progress');
@@ -530,10 +527,19 @@
         function scheduleSave() {
             if(!currentUser || !db) return;
             if(saveTimeout) clearTimeout(saveTimeout);
+            
             saveTimeout = setTimeout(async () => {
                 try {
-                    const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'progress');
-                    await setDoc(docRef, { balance: BALANCE, inventory: INVENTORY }, { merge: true });
+                    // Если пользователь вошел в аккаунт, сохраняем в его публичный профиль
+                    if(loggedInAccount) {
+                        const accountRef = doc(db, 'artifacts', appId, 'public', 'data', 'accounts', loggedInAccount);
+                        await setDoc(accountRef, { balance: BALANCE, inventory: INVENTORY }, { merge: true });
+                    } 
+                    // Иначе сохраняем как гость (привязка к сессии)
+                    else {
+                        const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'data', 'progress');
+                        await setDoc(docRef, { balance: BALANCE, inventory: INVENTORY }, { merge: true });
+                    }
                 } catch(e) { console.error("Save error", e); }
             }, 800);
         }
@@ -546,23 +552,23 @@
             }
         }
 
-        /* УПРАВЛЕНИЕ АККАУНТОМ И АВТОРИЗАЦИЕЙ */
-        function updateUserUI() {
+        /* ================= КАСТОМНАЯ СИСТЕМА АККАУНТОВ ================= */
+        function updateUserUI(email = null) {
             const userBtnText = document.getElementById('userBtnText');
-            if(currentUser && !currentUser.isAnonymous) {
-                userBtnText.innerText = currentUser.email.split('@')[0];
+            if(email) {
+                userBtnText.innerText = email.split('@')[0];
             } else {
-                userBtnText.innerText = "Войти";
+                userBtnText.innerText = "Гость";
             }
         }
 
         window.openAuthModal = function() {
-            if(currentUser && !currentUser.isAnonymous) {
-                if(confirm(`Вы вошли как ${currentUser.email}. Выйти из аккаунта?`)) {
-                    signOut(auth).then(() => {
-                        signInAnonymously(auth);
-                        showToast("Вы вышли из аккаунта");
-                    });
+            if(loggedInAccount) {
+                if(confirm(`Вы вошли как ${loggedInAccount.replace(/_/g, '.')}. Выйти из аккаунта?`)) {
+                    loggedInAccount = null;
+                    updateUserUI(null);
+                    loadGuestProgress(); // Возвращаем прогресс гостя
+                    showToast("Вы вышли из аккаунта");
                 }
                 return;
             }
@@ -575,10 +581,10 @@
         };
 
         window.toggleAuthMode = function() {
-            isAuthSignUpMode = !isAuthSignUpMode;
-            document.getElementById('authTitle').innerText = isAuthSignUpMode ? "РЕГИСТРАЦИЯ" : "ВХОД В АККАУНТ";
-            document.getElementById('btnAuthSubmit').innerText = isAuthSignUpMode ? "Создать аккаунт" : "Войти";
-            document.getElementById('btnToggleAuth').innerText = isAuthSignUpMode ? "Уже есть аккаунт? Войти" : "Создать новый аккаунт";
+            window.isAuthSignUpMode = !window.isAuthSignUpMode;
+            document.getElementById('authTitle').innerText = window.isAuthSignUpMode ? "РЕГИСТРАЦИЯ" : "ВХОД В АККАУНТ";
+            document.getElementById('btnAuthSubmit').innerText = window.isAuthSignUpMode ? "Создать аккаунт" : "Войти";
+            document.getElementById('btnToggleAuth').innerText = window.isAuthSignUpMode ? "Уже есть аккаунт? Войти" : "Создать новый аккаунт";
             document.getElementById('authError').innerText = '';
         };
 
@@ -591,21 +597,59 @@
                 errEl.innerText = "Заполните все поля!";
                 return;
             }
+            if(password.length < 4) {
+                errEl.innerText = "Пароль слишком короткий!";
+                return;
+            }
 
-            errEl.innerText = "Загрузка...";
+            errEl.innerText = "Синхронизация с базой...";
 
             try {
-                if(isAuthSignUpMode) {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    showToast("Аккаунт создан!");
+                // Создаем безопасный ID из email для Firestore
+                const emailId = email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                const accountRef = doc(db, 'artifacts', appId, 'public', 'data', 'accounts', emailId);
+                const snap = await getDoc(accountRef);
+
+                if (window.isAuthSignUpMode) {
+                    if (snap.exists()) {
+                        errEl.innerText = "E-mail уже зарегистрирован!";
+                        return;
+                    }
+                    // Создаем аккаунт и ПЕРЕНОСИМ текущий гостевой баланс/карточки
+                    await setDoc(accountRef, {
+                        email: email,
+                        password: password,
+                        balance: BALANCE,
+                        inventory: INVENTORY
+                    });
+                    loggedInAccount = emailId;
+                    showToast("Аккаунт успешно создан!");
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    if (!snap.exists()) {
+                        errEl.innerText = "Аккаунт не найден!";
+                        return;
+                    }
+                    const data = snap.data();
+                    if (data.password !== password) {
+                        errEl.innerText = "Неверный пароль!";
+                        return;
+                    }
+                    
+                    // Успешный вход, загружаем данные из БД
+                    loggedInAccount = emailId;
+                    BALANCE = data.balance !== undefined ? data.balance : 500;
+                    INVENTORY = data.inventory || [];
                     showToast("Успешный вход!");
                 }
+                
+                updateUserUI(email);
+                updateBalanceUI();
+                renderCollection();
                 closeAuthModal();
+
             } catch(e) {
                 console.error(e);
-                errEl.innerText = "Ошибка: " + (e.message.includes('auth/invalid-email') ? 'Неверный E-mail' : e.message.includes('auth/wrong-password') ? 'Неверный пароль' : e.message.includes('auth/email-already-in-use') ? 'E-mail уже занят' : 'Ошибка авторизации');
+                errEl.innerText = "Ошибка соединения с базой";
             }
         };
 
@@ -824,30 +868,30 @@
         /* ================= АКАДЕМИЯ АБАТА (УМЕНЬШЕННАЯ НАГРАДА) ================= */
         const QUIZ = {
             math: [
-                {q: "Сколько будет 2 + 2 * 2?", a: "6", reward: 2500},
-                {q: "Корень из 144?", a: "12", reward: 3000},
-                {q: "Чему равна площадь квадрата со стороной 5?", a: "25", reward: 2000},
-                {q: "100 разделить на 0.5?", a: "200", reward: 4000}
+                {q: "Сколько будет 2 + 2 * 2?", a: "6", reward: 1500},
+                {q: "Корень из 144?", a: "12", reward: 2000},
+                {q: "Чему равна площадь квадрата со стороной 5?", a: "25", reward: 1000},
+                {q: "100 разделить на 0.5?", a: "200", reward: 3000}
             ],
             it: [
-                {q: "Сколько бит в одном байте?", a: "8", reward: 2500},
-                {q: "Как называется основной язык стилей веб-страниц? (аббревиатура)", a: "css", reward: 3500},
-                {q: "HTML - это язык программирования? (да/нет)", a: "нет", reward: 1500}
+                {q: "Сколько бит в одном байте?", a: "8", reward: 1500},
+                {q: "Как называется основной язык стилей веб-страниц? (аббревиатура)", a: "css", reward: 2500},
+                {q: "HTML - это язык программирования? (да/нет)", a: "нет", reward: 1000}
             ],
             biology: [
-                {q: "Сколько хромосом у здорового человека?", a: "46", reward: 4000},
-                {q: "Какой газ растения поглощают при фотосинтезе?", a: "углекислый", reward: 3000},
-                {q: "Самая большая кость в теле человека?", a: "бедренная", reward: 5000}
+                {q: "Сколько хромосом у здорового человека?", a: "46", reward: 3000},
+                {q: "Какой газ растения поглощают при фотосинтезе?", a: "углекислый", reward: 2000},
+                {q: "Самая большая кость в теле человека?", a: "бедренная", reward: 4000}
             ],
             physics: [
-                {q: "В чем измеряется сила тока? (слово)", a: "ампер", reward: 3500},
-                {q: "Формула силы: F = m * ? (введите букву)", a: "a", reward: 2500},
-                {q: "Скорость света в вакууме примерно равна ... тыс. км/с (число)", a: "300", reward: 5000}
+                {q: "В чем измеряется сила тока? (слово)", a: "ампер", reward: 2500},
+                {q: "Формула силы: F = m * ? (введите букву)", a: "a", reward: 1500},
+                {q: "Скорость света в вакууме примерно равна ... тыс. км/с (число)", a: "300", reward: 4000}
             ],
             english: [
-                {q: "Переведите на английский: 'Яблоко'", a: "apple", reward: 1500},
-                {q: "Прошедшее время глагола 'go'?", a: "went", reward: 2000},
-                {q: "Переведите на русский: 'Always'", a: "всегда", reward: 1500}
+                {q: "Переведите на английский: 'Яблоко'", a: "apple", reward: 1000},
+                {q: "Прошедшее время глагола 'go'?", a: "went", reward: 1500},
+                {q: "Переведите на русский: 'Always'", a: "всегда", reward: 1000}
             ]
         };
 
@@ -1046,6 +1090,7 @@
                     strips.forEach((strip, index) => {
                         const duration = 2 + (index * 0.5); 
                         strip.style.transition = `transform ${duration}s cubic-bezier(0.1, 0.9, 0.2, 1)`;
+                        // 96px is symbol height now
                         strip.style.transform = `translate3d(0, -${(TOTAL_SYMBOLS - 1) * 96}px, 0)`;
                         slotTimeouts.push(setTimeout(() => playTone(300 + index*100, 'square', 0.1, 0.1), duration*1000));
                     });
@@ -1094,6 +1139,7 @@
         const pCtx = plinkoCanvas.getContext('2d');
         const plinkoRows = 8;
         const pRadius = 6;
+        // Еще более низкие коэффиценты
         const multipliers = [0, 0.05, 0.1, 0.5, 2, 0.5, 0.1, 0.05, 0];
         
         let plinkoBalls = [];
@@ -1176,7 +1222,7 @@
             
             let currentBin = 0; 
             for(let r=0; r<plinkoRows; r++) {
-                // Сильное смещение к центру (проигрышные слоты)
+                // Сильнейшее смещение к центру (проигрышные слоты)
                 let centerPull = (x > plinkoCanvas.width/2) ? -0.28 : 0.28;
                 let dir = (Math.random() + centerPull) > 0.5 ? 1 : -1;
 
